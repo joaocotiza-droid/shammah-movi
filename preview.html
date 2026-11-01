@@ -669,6 +669,7 @@ footer{padding-block:28px calc(36px + env(safe-area-inset-bottom,0px))}
 <label for="fFrom"><span data-i18n="lFrom">Moving from</span><input type="text" id="fFrom" name="from" autocomplete="address-level2" maxlength="300" placeholder="City or ZIP" data-i18n-ph="phFrom"></label>
 <label for="fTo"><span data-i18n="lTo">Moving to</span><input type="text" id="fTo" name="to" maxlength="300" placeholder="City, ZIP or country" data-i18n-ph="phTo"></label>
 </div>
+<!--INV-->
 <div class="inv" id="inv" aria-labelledby="invH"><p class="lbl" id="invH">O que vai na mudança · What's going</p><p class="inv-hint" id="invHint">Quantidades aproximadas. Pode pular o que não souber.</p><div id="invList"></div></div>
 <style>
 .inv{margin:6px 0 4px;padding:18px;border-radius:20px;background:var(--surface)}
@@ -685,6 +686,7 @@ footer{padding-block:28px calc(36px + env(safe-area-inset-bottom,0px))}
 .inv-step button:disabled{opacity:.35;cursor:default}
 .inv-step output{min-width:28px;text-align:center;font:500 15px var(--mono)}
 </style>
+<!--/INV-->
 <label for="fDetails"><span data-i18n="lDetails">Size or items</span><input type="text" name="details" id="fDetails" maxlength="500" placeholder="e.g. 4 bedrooms, 2 floors"></label>
 <label for="fNotes"><span data-i18n="lNotes">Anything we should know? (optional)</span><textarea name="notes" id="fNotes" rows="2" maxlength="1000" placeholder="Stairs, elevator, piano, fragile items…" data-i18n-ph="phNotes"></textarea></label>
 <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -1170,6 +1172,7 @@ footer{padding-block:28px calc(36px + env(safe-area-inset-bottom,0px))}
 
   function invCount(id) { return state.inv[id] || 0; }
   function renderInv() {
+    if (!$("#invList")) return;
     var lg = state.lang, pt = lg === "pt";
     $("#invH").textContent = pt ? "O que vai na mudança" : "What's going";
     $("#invHint").textContent = pt ? "Quantidades aproximadas. Pode pular o que não souber." : "Rough counts are fine. Skip anything you're not sure about.";
@@ -1192,7 +1195,7 @@ footer{padding-block:28px calc(36px + env(safe-area-inset-bottom,0px))}
     });
     return out;
   }
-  $("#invList").addEventListener("click", function (ev) {
+  if ($("#invList")) $("#invList").addEventListener("click", function (ev) {
     var b = ev.target.closest("button[data-inv]");
     if (!b || b.disabled) return;
     var id = b.dataset.inv, n = invCount(id) + Number(b.dataset.d);

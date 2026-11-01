@@ -176,6 +176,13 @@ button{cursor:pointer}
 .kv{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 14px;font-size:14px}
 .kv span{color:var(--mute)}
 .kv b{font-weight:500;overflow-wrap:anywhere}
+.quote{padding:16px;border-radius:18px;background:var(--surface);display:flex;flex-direction:column;gap:12px}
+.money{position:relative}
+.money b{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-weight:600;color:var(--mute);pointer-events:none}
+.money .input{padding-left:58px;font-size:20px;font-weight:600;letter-spacing:-.02em}
+.wa-prev{background:#e7f8dc;border-radius:16px 16px 16px 4px;padding:12px 14px;font-size:14px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:#111;box-shadow:0 1px 0 rgba(0,0,0,.06)}
+.wa-prev small{display:block;margin-bottom:6px;font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#4c7a3a}
+.btn[aria-disabled="true"]{opacity:.5}
 .warn{padding:12px 14px;border-radius:14px;background:var(--orange-soft);color:#7a3406;font-size:14px;display:flex;flex-direction:column;gap:10px}
 .hist{display:flex;flex-direction:column;gap:6px}
 .hist .h{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface);font-size:14px;cursor:pointer}
@@ -298,6 +305,42 @@ button{cursor:pointer}
       ? "Olá, " + first + "! Aqui é a Shammah Moving. Sua mudança (" + ty + ") está confirmada para " + d + ", chegada " + a + ". Código " + b.code + ". Para ver ou cancelar: " + link(b)
       : "Hi " + first + "! This is Shammah Moving. Your move (" + ty + ") is confirmed for " + d + ", arrival " + a + ". Code " + b.code + ". View or cancel here: " + link(b);
   }
+  /* Set to true once the public quote page (orcamento.html) is live in the database. */
+  var QUOTE_PAGE = false;
+  function quoteLink(b) { return location.origin + "/orcamento?t=" + b.token + "&lang=" + (b.lang || "en"); }
+  function quoteItems(b, lg) {
+    var inv = Array.isArray(b.inventory) ? b.inventory : [];
+    if (inv.length) return inv.map(function (it) { return it.qty + "x " + (lg === "pt" ? (it.item_pt || it.item) : it.item); });
+    var m = String(b.notes || "").match(/(?:^|\n)(?:Items|Itens):\s*(.+)/);
+    return m ? m[1].split(/;\s*/).filter(Boolean) : [];
+  }
+  function usd(c) { return (c / 100).toLocaleString("en-US", { minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2 }); }
+  function msgQuote(b, c) {
+    var lg = b.lang === "pt" ? "pt" : "en", pt = lg === "pt", first = String(b.name).split(" ")[0];
+    var ty = pt ? (S.tmap[b.move_type] || {}).label_pt : (S.tmap[b.move_type] || {}).label_en;
+    var d = SB.fmt(b.move_date, lg, { weekday: "long", month: "long", day: "numeric" });
+    var items = quoteItems(b, lg), L = [];
+    L.push(pt ? "Olá, " + first + "! 👋" : "Hi " + first + "! 👋");
+    L.push(pt ? "Segue o orçamento da sua mudança com a *Shammah Moving*." : "Here's the quote for your move with *Shammah Moving*.");
+    L.push("");
+    L.push("🚚 *" + (ty || b.move_type) + "*");
+    L.push("📅 " + d.charAt(0).toUpperCase() + d.slice(1));
+    L.push("🕗 " + (pt ? "Chegada: " : "Arrival: ") + arrive(b));
+    if (b.from_addr) L.push("📍 " + (pt ? "De: " : "From: ") + b.from_addr);
+    if (b.to_addr) L.push("🏁 " + (pt ? "Para: " : "To: ") + b.to_addr);
+    if (items.length) { L.push(""); L.push(pt ? "*Itens*" : "*Items*"); items.forEach(function (x) { L.push("• " + x); }); }
+    else if (b.size_note) { L.push(""); L.push((pt ? "*Tamanho:* " : "*Size:* ") + b.size_note); }
+    L.push("");
+    L.push("━━━━━━━━━━━━━━");
+    L.push("💰 *" + (pt ? "Valor total: US$ " : "Total: $") + (c == null ? "—" : usd(c)) + "*");
+    L.push("━━━━━━━━━━━━━━");
+    L.push("");
+    if (QUOTE_PAGE) L.push((pt ? "Veja os detalhes e aceite aqui: " : "See the details and accept here: ") + quoteLink(b));
+    else L.push(pt ? "Para confirmar, é só responder *ACEITO* aqui. Se quiser ajustar a data ou os itens, me avise." : "To book, just reply *ACCEPT* here. If you'd like to change the date or items, let me know.");
+    L.push(pt ? "Código: " + b.code : "Code: " + b.code);
+    return L.join("\n");
+  }
+  function waPreview(text) { return esc(text).replace(/\*([^*\n]+)\*/g, "<b>$1</b>"); }
   function busy(btn, on, txt) { btn.disabled = on; if (txt) btn.dataset.t = btn.dataset.t || btn.textContent; btn.textContent = on ? (txt || "…") : (btn.dataset.t || btn.textContent); }
   function digits(s) { return String(s || "").replace(/\D/g, ""); }
   /* "1.250,50", "1,250.50", "300" and "300.5" all work: the last separator is decimal only when 1-2 digits follow it. */
@@ -519,6 +562,9 @@ button{cursor:pointer}
       '<div class="seg" id="bSt">' + ["pending", "confirmed", "done", "cancelled"].map(function (s) { return '<button type="button" data-s="' + s + '" aria-pressed="' + (b.status === s) + '">' + STATUS[s] + "</button>"; }).join("") + "</div></div>" +
       '<div class="sec"><p class="lbl">Cliente</p><div class="kv"><span>Nome</span><b>' + esc(b.name) + "</b><span>Telefone</span><b>" + esc(phone(b.phone)) + "</b>" + (b.email ? "<span>E-mail</span><b>" + esc(b.email) + "</b>" : "") + "<span>Idioma</span><b>" + (b.lang === "pt" ? "Português" : "Inglês") + "</b><span>Pedido em</span><b>" + esc(SB.stamp(b.created_at, "pt")) + "</b></div>" +
       '<div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn btn-sm btn-line" target="_blank" rel="noopener" href="' + esc(waUrl(b.phone)) + '">' + I.wa + 'WhatsApp</a><a class="btn btn-sm btn-line" target="_blank" rel="noopener" href="' + esc(waUrl(b.phone, msgConfirm(b))) + '">' + I.wa + 'Enviar confirmação</a><button class="btn btn-sm btn-line" type="button" data-copy="' + esc(link(b)) + '">Copiar link da reserva</button></div></div>' +
+      '<div class="sec"><p class="lbl">Orçamento</p><div class="quote"><label class="fld"><span>Valor do orçamento</span><div class="money"><b>US$</b><input class="input" id="bPrice" inputmode="decimal" placeholder="0" value="' + (b.price_cents == null ? "" : usd(b.price_cents)) + '"></div></label>' +
+      '<div class="wa-prev" id="qPrev" aria-live="polite"></div>' +
+      '<a class="btn btn-o" id="qSend" target="_blank" rel="noopener" href="#">' + I.wa + 'Enviar orçamento no WhatsApp</a></div></div>' +
       '<div class="sec"><p class="lbl">Mudança</p><div class="kv"><span>Tipo</span><b>' + esc(t.label_pt || b.move_type) + "</b><span>Duração</span><b>" + (half ? "Meio dia" : "Dia inteiro") + " · " + b.crews + " equipe(s)</b></div>" +
       '<div class="grid2"><label class="fld"><span>Data</span><input class="input" type="date" id="bDate" value="' + b.move_date + '"></label>' +
       (half ? '<label class="fld"><span>Janela</span><select class="sel" id="bWin"><option value="morning"' + (b.win === "morning" ? " selected" : "") + ">Manhã · " + esc((S.set || {}).morning_label || "") + '</option><option value="afternoon"' + (b.win === "afternoon" ? " selected" : "") + ">Tarde · " + esc((S.set || {}).afternoon_label || "") + "</option></select></label>" : '<div class="fld"><span>Chegada</span><div class="input" style="display:flex;align-items:center">' + esc(arrive(b)) + "</div></div>") + "</div>" +
@@ -526,7 +572,7 @@ button{cursor:pointer}
       '<label class="fld"><span>Saída</span><input class="input" id="bFrom" value="' + esc(b.from_addr) + '" maxlength="300"></label><label class="fld"><span>Destino</span><input class="input" id="bTo" value="' + esc(b.to_addr) + '" maxlength="300"></label>' +
       '<label class="fld"><span>Tamanho ou itens</span><input class="input" id="bSize" value="' + esc(b.size_note) + '" maxlength="500"></label>' +
       '<label class="fld"><span>Observações do cliente</span><textarea class="ta" id="bNotes" maxlength="1000">' + esc(b.notes) + "</textarea></label></div>" +
-      '<div class="sec"><p class="lbl">Interno</p><div class="grid2"><label class="fld"><span>Valor combinado (US$)</span><input class="input" id="bPrice" inputmode="decimal" placeholder="0,00" value="' + (b.price_cents == null ? "" : (b.price_cents / 100).toFixed(2).replace(".", ",")) + '"></label></div>' +
+      '<div class="sec"><p class="lbl">Interno</p>' +
       '<label class="fld"><span>Anotações da equipe</span><textarea class="ta" id="bAdmin" maxlength="1000" placeholder="Só a equipe vê isto.">' + esc(b.admin_note) + "</textarea></label></div>";
     drawer("Mudança · " + dshort(b.move_date), b.name, body, '<button class="btn btn-o" type="button" id="bSave">Salvar</button>' + (b.status === "pending" ? '<button class="btn" type="button" id="bConf">Confirmar</button>' : ""));
     var cur = b, st = b.status;
@@ -540,6 +586,20 @@ button{cursor:pointer}
     }
     $("#bSt").addEventListener("click", function (ev) { var x = ev.target.closest("button[data-s]"); if (!x) return; st = x.dataset.s; $$("#bSt button").forEach(function (y) { y.setAttribute("aria-pressed", y === x ? "true" : "false"); }); });
     $("#bSave").addEventListener("click", function () { save(); });
+    function renderQuote() {
+      var c = cents($("#bPrice").value), a = $("#qSend"), txt = msgQuote(cur, c);
+      $("#qPrev").innerHTML = "<small>Prévia da mensagem · " + (cur.lang === "pt" ? "Português" : "Inglês") + "</small>" + waPreview(txt);
+      a.href = c == null ? "#" : waUrl(cur.phone, txt);
+      a.setAttribute("aria-disabled", c == null ? "true" : "false");
+    }
+    $("#bPrice").addEventListener("input", renderQuote);
+    $("#qSend").addEventListener("click", function (ev) {
+      var c = cents($("#bPrice").value);
+      if (c == null) { ev.preventDefault(); SB.toast("Coloque o valor do orçamento primeiro.", true); $("#bPrice").focus(); return; }
+      if (c === cur.price_cents) return;
+      SB.update("bookings", "id=eq." + b.id, { price_cents: c }).then(function () { cur.price_cents = c; SB.toast("Valor salvo no pedido."); refresh(); }).catch(err);
+    });
+    renderQuote();
     var conf = $("#bConf"); if (conf) conf.addEventListener("click", function () { st = "confirmed"; save(); });
     $("#bMove").addEventListener("click", function () { move(false); });
     function move(force) {

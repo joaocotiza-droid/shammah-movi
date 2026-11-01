@@ -15,6 +15,10 @@ from content import T, SVC, FAQ, MOVES, WA, IG, PHONE, PHONE_LABEL, EMAIL, SITE_
 from truck import truck_svg, ITEM_DATA
 
 HERE = Path(__file__).parent
+
+# Room-by-room item list in the booking form. Set to False to take it off the site;
+# nothing else on the page changes (the request is sent without the list).
+SHOW_INVENTORY = True
 FMCSA = "https://safer.fmcsa.dot.gov/query.asp?searchtype=ANY&query_type=queryCarrierSnapshot&query_param=USDOT&query_string=1547896"
 
 ADD = {
@@ -807,6 +811,7 @@ BODY = r'''
 <label for="fFrom"><span data-i18n="lFrom">{{lFrom}}</span><input type="text" id="fFrom" name="from" autocomplete="address-level2" maxlength="300" placeholder="{{phFrom}}" data-i18n-ph="phFrom"></label>
 <label for="fTo"><span data-i18n="lTo">{{lTo}}</span><input type="text" id="fTo" name="to" maxlength="300" placeholder="{{phTo}}" data-i18n-ph="phTo"></label>
 </div>
+<!--INV-->
 <div class="inv" id="inv" aria-labelledby="invH"><p class="lbl" id="invH">O que vai na mudança · What's going</p><p class="inv-hint" id="invHint">Quantidades aproximadas. Pode pular o que não souber.</p><div id="invList"></div></div>
 <style>
 .inv{margin:6px 0 4px;padding:18px;border-radius:20px;background:var(--surface)}
@@ -823,6 +828,7 @@ BODY = r'''
 .inv-step button:disabled{opacity:.35;cursor:default}
 .inv-step output{min-width:28px;text-align:center;font:500 15px var(--mono)}
 </style>
+<!--/INV-->
 <label for="fDetails"><span data-i18n="lDetails">{{lDetails}}</span><input type="text" name="details" id="fDetails" maxlength="500" placeholder="%%MV_PH%%"></label>
 <label for="fNotes"><span data-i18n="lNotes">{{lNotes}}</span><textarea name="notes" id="fNotes" rows="2" maxlength="1000" placeholder="{{phNotes}}" data-i18n-ph="phNotes"></textarea></label>
 <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -1167,6 +1173,7 @@ JS = r'''
 
   function invCount(id) { return state.inv[id] || 0; }
   function renderInv() {
+    if (!$("#invList")) return;
     var lg = state.lang, pt = lg === "pt";
     $("#invH").textContent = pt ? "O que vai na mudança" : "What's going";
     $("#invHint").textContent = pt ? "Quantidades aproximadas. Pode pular o que não souber." : "Rough counts are fine. Skip anything you're not sure about.";
@@ -1189,7 +1196,7 @@ JS = r'''
     });
     return out;
   }
-  $("#invList").addEventListener("click", function (ev) {
+  if ($("#invList")) $("#invList").addEventListener("click", function (ev) {
     var b = ev.target.closest("button[data-inv]");
     if (!b || b.disabled) return;
     var id = b.dataset.inv, n = invCount(id) + Number(b.dataset.d);
@@ -1437,6 +1444,9 @@ HEAD = f'''<!doctype html>
 </style>
 </head>
 <body>'''
+
+if not SHOW_INVENTORY:
+    body = re.sub(r"<!--INV-->.*?<!--/INV-->\n", "", body, flags=re.S)
 
 site = HEAD + body + '<script src="/assets/sb.js"></script>\n<script>' + js + "</script>\n</body>\n</html>\n"
 (HERE / "index.html").write_text(site, encoding="utf-8")
