@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Your quote · Shammah Moving</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="preload" href="/assets/fonts/geist-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:"Barlow Condensed";font-style:italic;font-weight:900;font-display:swap;src:url(/assets/fonts/barlow-condensed-latin-900-italic.woff2) format("woff2")}
+@font-face{font-family:"Geist";font-style:normal;font-weight:400;font-display:swap;src:url(/assets/fonts/geist-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Geist";font-style:normal;font-weight:500;font-display:swap;src:url(/assets/fonts/geist-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Geist";font-style:normal;font-weight:600;font-display:swap;src:url(/assets/fonts/geist-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Geist Mono";font-style:normal;font-weight:500;font-display:swap;src:url(/assets/fonts/geist-mono-latin-500-normal.woff2) format("woff2")}
+:root{--bg:#fff;--surface:#f3f3f1;--ink:#121214;--mute:#66666d;--line:#e3e3df;--orange:#ff6b1a;--orange-hi:#ff8540;--night:#0d0d0f;
+--sans:Geist,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;--mono:"Geist Mono",ui-monospace,Menlo,monospace;--disp:"Barlow Condensed","Arial Narrow",Impact,sans-serif;--ease:cubic-bezier(.2,.7,.2,1);color-scheme:light}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100svh;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:400 17px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--orange);outline-offset:3px;border-radius:8px}
+.top{width:min(1180px,100% - 24px);margin:14px auto 0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 7px 7px 16px;border-radius:999px;background:var(--surface)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand img{width:34px;height:34px;border-radius:50%}
+.brand b{font-family:var(--disp);font-style:italic;font-weight:900;font-size:21px;letter-spacing:.03em;line-height:1}
+.top-r{display:flex;align-items:center;gap:8px}
+.lang{display:flex;padding:3px;border-radius:999px;background:#fff}
+.lang button{min-height:30px;min-width:38px;padding:0 10px;border:0;border-radius:999px;background:transparent;color:#55555b;font:600 12px var(--mono);letter-spacing:.06em;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 24px;border-radius:999px;font:600 15px var(--sans);text-decoration:none;border:1px solid transparent;cursor:pointer;white-space:nowrap;transition:transform .2s var(--ease),background-color .25s,border-color .25s}
+.btn:active{transform:scale(.97)}
+.btn-ink{background:var(--ink);color:#fff}.btn-ink:hover{background:#2a2a2e}
+.btn-o{background:var(--orange);color:var(--ink)}.btn-o:hover{background:var(--orange-hi)}
+.btn-line{background:#fff;border-color:var(--line)}.btn-line:hover{border-color:var(--ink)}
+.btn-sm{min-height:42px;padding:0 18px;font-size:14px}
+.btn-bad{background:#c53b12;color:#fff}.btn-bad:hover{background:#a8310e}
+.btn[disabled]{opacity:.6;cursor:progress}
+main{flex:1;width:min(1180px,100% - 24px);margin:0 auto;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(24px,5vw,72px);align-items:center;padding:clamp(28px,6vw,72px) 0}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--surface);font:500 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--orange)}
+.chip.off i{background:#b6b6bc}
+h1{margin:18px 0 16px;font-weight:500;font-size:clamp(44px,6.4vw,92px);line-height:.96;letter-spacing:-.05em}
+h1 span{display:block}
+h1 .o{color:var(--orange)}
+.lead{margin:0 0 28px;color:var(--mute);max-width:32em;font-size:18px}
+.acts{display:flex;flex-wrap:wrap;gap:10px}
+.confirm{display:none;margin-top:22px;padding:20px;border-radius:20px;background:var(--surface);max-width:34em}
+.confirm.on{display:block;animation:pop .3s var(--ease)}
+.confirm p{margin:0 0 14px;font-weight:600}
+.note{margin:18px 0 0;color:var(--mute);font-size:14px;max-width:34em}
+.ticket{border-radius:28px;background:var(--night);color:#f4f4f2;padding:clamp(24px,3vw,36px);position:relative}
+.ticket.cancelled{opacity:.7}
+.code{font:500 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--orange)}
+.when{margin:14px 0 4px;font-weight:500;font-size:clamp(34px,4vw,48px);line-height:1.02;letter-spacing:-.04em}
+.ticket.cancelled .when{text-decoration:line-through;text-decoration-thickness:2px}
+.arrive{margin:0;color:#b5b5ba}
+.cut{position:relative;border-top:1px dashed #3a3a3f;margin:26px calc(-1 * clamp(24px,3vw,36px)) 18px}
+.cut::before,.cut::after{content:"";position:absolute;top:-12px;width:24px;height:24px;border-radius:50%;background:var(--bg)}
+.cut::before{left:-12px}.cut::after{right:-12px}
+.row{display:flex;justify-content:space-between;gap:20px;padding:7px 0;font-size:15px}
+.row span{color:#8f8f96;flex:none}
+.row b{font-weight:500;text-align:right;overflow-wrap:anywhere}
+.skel{background:linear-gradient(90deg,#f0f0ee,#e6e6e3,#f0f0ee);background-size:200% 100%;animation:sk 1.2s linear infinite;border-radius:14px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;padding:12px 18px;border-radius:999px;background:var(--ink);color:#fff;font-size:14px;z-index:50;transition:opacity .25s,transform .25s;pointer-events:none;max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}.toast.err{background:#c53b12}
+footer{padding:22px 12px calc(28px + env(safe-area-inset-bottom,0px));text-align:center;color:var(--mute);font-size:13px}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}}
+@keyframes sk{to{background-position:-200% 0}}
+@media (max-width:860px){main{grid-template-columns:minmax(0,1fr)}.ticket{order:-1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.items{margin:0;padding:0;list-style:none}
+.items li{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #2a2a2f;font-size:15px}
+.items li:last-child{border-bottom:0}
+.items .q{color:var(--orange);font-family:var(--mono);font-size:13px;flex:none}
+.items .r{color:#8f8f96;font-size:13px;display:block}
+.grp{margin-top:18px}.grp:first-child{margin-top:0}
+.grp h4{margin:0 0 4px;font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#8f8f96}
+.price{margin:22px 0 4px;font-family:var(--disp);font-style:italic;font-weight:900;font-size:44px;line-height:1;color:#fff}
+.price-n{margin:0;color:#8f8f96;font-size:13px}
+.decide{margin-top:22px;padding:22px;border-radius:24px;background:var(--surface)}
+.decide h3{margin:0 0 6px;font-weight:500;font-size:24px;letter-spacing:-.03em}
+.decide p{margin:0 0 14px;color:var(--mute);font-size:15px}
+.decide textarea{width:100%;min-height:84px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;font:400 15px var(--sans);color:var(--ink);resize:vertical;margin-bottom:12px}
+.decide textarea:focus{outline:2px solid var(--orange);outline-offset:1px;border-color:transparent}
+.decide .acts .btn{flex:1 1 180px}
+.stamp{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--surface);font:500 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.stamp i{width:7px;height:7px;border-radius:50%;background:var(--orange)}
+.stamp.ok i{background:#1f9d55}.stamp.no i{background:#b6b6bc}
+</style>
+</head>
+<body>
+<header class="top">
+<a class="brand" href="index.html" aria-label="Shammah Moving"><img src="/assets/logo-160.png" alt="" width="34" height="34"><b>SHAMMAH</b></a>
+<div class="top-r"><div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en" aria-pressed="true">EN</button><button type="button" data-lang="pt" aria-pressed="false">PT</button></div></div>
+</header>
+<main id="main">
+<div><div class="skel" style="height:40px;width:42%"></div><div class="skel" style="height:96px;width:86%;margin-top:22px"></div><div class="skel" style="height:22px;width:70%;margin-top:22px"></div></div>
+<div class="skel" style="height:360px;border-radius:28px"></div>
+</main>
+<footer id="foot">Shammah Moving · Windermere, FL</footer>
+<script src="/assets/sb.js"></script>
+<script>
+(function () {
+  var esc = SB.esc, main = document.getElementById("main");
+  var token = new URLSearchParams(location.search).get("t");
+  var qlang = new URLSearchParams(location.search).get("lang");
+  var lang = qlang === "pt" || qlang === "en" ? qlang : (localStorage.getItem("shammah-lang") === "pt" ? "pt" : "en");
+  var data = null, busy = false;
+  var ROOM = {
+    bed: { en: "Bedrooms", pt: "Quartos" }, kitchen: { en: "Kitchen", pt: "Cozinha" },
+    living: { en: "Living room", pt: "Sala" }, other: { en: "Other", pt: "Outros" }
+  };
+  var T = {
+    en: { st_request: "Being quoted", st_quoted: "Quote ready", st_accepted: "Confirmed", st_confirmed: "Confirmed", st_declined: "Quote declined", st_cancelled: "Cancelled",
+      h_request: ["Your quote is", "being prepared."], h_quoted: ["Your quote is", "ready."], h_accepted: ["You're", "booked."], h_confirmed: ["You're", "booked."], h_declined: ["Quote", "declined."], h_cancelled: ["Booking", "cancelled."],
+      l_request: "Our team is reviewing your list and will send the quote on WhatsApp.", l_quoted: "Review the details below. Accept to book this date, or decline and tell us what to change.",
+      l_accepted: "Thanks! Your date is booked and our team has been notified. We'll confirm the crew by WhatsApp.", l_confirmed: "Your date is booked. We'll confirm the crew by WhatsApp.", l_declined: "Got it. Your date has been released. Message us if you want a new quote.", l_cancelled: "This booking was cancelled.",
+      move: "Move", date: "Date", arrive: "Arrival", items: "What's going", est: "Total quote", total: "Quote total", code: "Code", from: "From", to: "To",
+      acc_h: "Ready to book?", acc_p: "Accepting reserves this date for your move.", accept: "Accept quote", decline: "Decline quote",
+      dec_h: "Not right yet?", dec_p: "Tell us what to change. Optional.", dec_ph: "For example: date doesn't work, or price is too high", send_dec: "Send decline", back: "Back",
+      accepted_ok: "Quote accepted. Your date is booked.", declined_ok: "Quote declined.", err_fail: "We couldn't save that. Please message us.",
+      bad: "This quote link isn't valid.", bad_l: "Please check the link or message us.", offline: "We couldn't load this quote right now.", offline_l: "Try again in a moment or message us.",
+      wa: "Message us on WhatsApp", call: "Call", aGo: "Confirm" },
+    pt: { st_request: "Em orçamento", st_quoted: "Orçamento pronto", st_accepted: "Confirmada", st_confirmed: "Confirmada", st_declined: "Orçamento recusado", st_cancelled: "Cancelada",
+      h_request: ["Seu orçamento está", "sendo preparado."], h_quoted: ["Seu orçamento", "está pronto."], h_accepted: ["Tudo certo,", "data reservada."], h_confirmed: ["Tudo certo,", "data reservada."], h_declined: ["Orçamento", "recusado."], h_cancelled: ["Reserva", "cancelada."],
+      l_request: "Nossa equipe está analisando sua lista e vai mandar o orçamento pelo WhatsApp.", l_quoted: "Confira os detalhes abaixo. Aceite para reservar a data, ou recuse e nos diga o que ajustar.",
+      l_accepted: "Obrigado! Sua data está reservada e a equipe foi avisada. Vamos confirmar a equipe pelo WhatsApp.", l_confirmed: "Sua data está reservada. Vamos confirmar a equipe pelo WhatsApp.", l_declined: "Recebido. A data foi liberada. Chame a gente se quiser um novo orçamento.", l_cancelled: "Esta reserva foi cancelada.",
+      move: "Mudança", date: "Data", arrive: "Chegada", items: "O que vai na mudança", est: "Orçamento", total: "Total do orçamento", code: "Código", from: "De", to: "Para",
+      acc_h: "Pronto para reservar?", acc_p: "Aceitar reserva esta data para a sua mudança.", accept: "Aceitar orçamento", decline: "Recusar orçamento",
+      dec_h: "Algo não está certo?", dec_p: "Conte o que ajustar. Opcional.", dec_ph: "Por exemplo: a data não serve, ou o valor está alto", send_dec: "Enviar recusa", back: "Voltar",
+      accepted_ok: "Orçamento aceito. Sua data está reservada.", declined_ok: "Orçamento recusado.", err_fail: "Não foi possível salvar. Chame a gente pelo WhatsApp.",
+      bad: "Este link de orçamento não é válido.", bad_l: "Confira o link ou chame a gente.", offline: "Não foi possível carregar o orçamento agora.", offline_l: "Tente de novo em instantes ou chame a gente.",
+      wa: "Chamar no WhatsApp", call: "Ligar", aGo: "Confirmar" }
+  };
+  var CODE = { request: "request", pending: "quoted", confirmed: "confirmed", done: "confirmed", cancelled: "cancelled", declined: "declined" };
+
+  function tr(v) { return v; }
+  function setLangButtons() {
+    document.documentElement.lang = lang;
+    Array.prototype.forEach.call(document.querySelectorAll(".lang button"), function (b) { b.setAttribute("aria-pressed", b.dataset.lang === lang ? "true" : "false"); });
+  }
+  function row(k, v) { return v ? '<div class="row"><span>' + esc(k) + "</span><b>" + esc(v) + "</b></div>" : ""; }
+  function bad(h, l) {
+    main.innerHTML = '<div><p class="chip off"><i></i>' + esc(h) + '</p><h1><span>' + esc(l) + '</span></h1></div>';
+  }
+  function itemsHtml(list) {
+    var groups = {}, order = [];
+    (list || []).forEach(function (it) {
+      var g = it.room || "other";
+      if (!groups[g]) { groups[g] = []; order.push(g); }
+      groups[g].push(it);
+    });
+    return order.map(function (g) {
+      return '<div class="grp"><h4>' + esc(ROOM[g] ? ROOM[g][lang] : g) + '</h4><ul class="items">' +
+        groups[g].map(function (it) {
+          return '<li><span>' + esc(lang === "pt" ? it.item_pt || it.item : it.item) + '</span><span class="q">× ' + esc(String(it.qty)) + "</span></li>";
+        }).join("") + "</ul></div>";
+    }).join("") || '<p class="lead">—</p>';
+  }
+  function render() {
+    var t = T[lang], d = data, code = CODE[d.status] || "request";
+    var arr = d.win_label || "";
+    var m = lang === "pt" ? d.type_pt : d.type_en;
+    var dl = SB.longDate(d.date, lang);
+    var head = t["h_" + code] || t.h_request, lead = t["l_" + code] || t.l_request;
+    var stamp = '<span class="stamp ' + (code === "confirmed" ? "ok" : code === "cancelled" || code === "declined" ? "no" : "") + '"><i></i>' + esc(t["st_" + (d.status === "pending" ? "quoted" : d.status)] || t.st_request) + "</span>";
+    var ticket = '<div class="ticket' + (code === "cancelled" ? " cancelled" : "") + '"><div class="code">' + esc(t.code) + " " + esc(d.code) + '</div><p class="when">' + esc(dl) + '</p><p class="arrive">' + esc(t.arrive) + " · " + esc(arr) + '</p><div class="cut"></div>' +
+      row(t.move, m) + row(t.from, d.from_addr) + row(t.to, d.to_addr) + '<div style="margin-top:14px;padding-top:6px;border-top:1px solid #2a2a2f">' + itemsHtml(d.inventory) + "</div>" +
+      (d.price_cents != null && code !== "request" ? '<p class="price-n">' + esc(t.total) + '</p><p class="price">' + esc(SB.money(d.price_cents)) + "</p>" : "") +
+      "</div>";
+    var decide = "";
+    if (code === "quoted") {
+      decide = '<div class="decide"><h3>' + esc(t.acc_h) + '</h3><p>' + esc(t.acc_p) + '</p><div class="acts"><button class="btn btn-ink" id="accept" type="button">' + esc(t.accept) + '</button></div>' +
+        '<div style="margin-top:22px"><h3 style="font-size:20px">' + esc(t.dec_h) + '</h3><p>' + esc(t.dec_p) + '</p><textarea id="reason" maxlength="500" placeholder="' + esc(t.dec_ph) + '"></textarea><div class="acts"><button class="btn btn-line" id="decline" type="button">' + esc(t.send_dec) + "</button></div></div></div>";
+    }
+    main.innerHTML = '<div><div class="stamp-row" style="margin-bottom:18px">' + stamp + '</div><h1><span>' + esc(head[0]) + '</span><span class="o">' + esc(head[1]) + '</span></h1><p class="lead">' + esc(lead) + '</p>' +
+      '<div class="acts"><a class="btn btn-ink" href="https://wa.me/' + esc(String(d.whatsapp || "")) + '">' + esc(t.wa) + "</a>" +
+      '<a class="btn btn-line" href="tel:' + esc(String(d.phone || "").replace(/\s/g, "")) + '">' + esc(t.call) + " " + esc(d.phone_fmt || d.phone || "") + "</a></div>" + decide + "</div>" + ticket;
+    var acc = document.getElementById("accept");
+    if (acc) acc.onclick = function () { act("accept_quote", { p_token: token }, "accepted_ok", null); };
+    var dec = document.getElementById("decline");
+    if (dec) dec.onclick = function () { act("decline_quote", { p_token: token, p_reason: document.getElementById("reason").value.trim() }, "declined_ok", null); };
+  }
+  function act(fn, body, okKey) {
+    if (busy) return; busy = true;
+    SB.rpc(fn, body).then(function (r) {
+      SB.toast(T[lang][okKey]);
+      if (r && r.status) data.status = r.status;
+      if (r && r.inventory) data = Object.assign(data, r);
+      render();
+    }).catch(function (e) {
+      SB.toast(SB.errText(e, lang), true);
+    }).then(function () { busy = false; });
+  }
+  function load() {
+    if (!token) return bad(T[lang].bad, T[lang].bad_l);
+    SB.rpc("get_quote", { p_token: token }).then(function (q) {
+      if (!q) return bad(T[lang].bad, T[lang].bad_l);
+      data = q; render();
+    }).catch(function () { data = null; bad(T[lang].offline, T[lang].offline_l); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".lang button"), function (b) {
+    b.addEventListener("click", function () {
+      lang = b.dataset.lang; try { localStorage.setItem("shammah-lang", lang); } catch (e) {}
+      setLangButtons(); if (data) render(); else load();
+    });
+  });
+  setLangButtons(); load();
+})();
+</script>
+</body>
+</html>

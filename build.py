@@ -108,8 +108,8 @@ BK = {
         "bookBtn": "Hold my date", "sending": "Sending…",
         "vDate": "Pick a date for your move.", "vWin": "Pick morning or afternoon.",
         "vName": "Please enter your name.", "vPhone": "Check your phone number, with area code.",
-        "okPending": "Date held.", "okConfirmed": "You're booked.",
-        "okSubPending": "We received your request and the crew is held for {d}. We'll confirm with you by WhatsApp or phone.",
+        "okPending": "Request received.", "okConfirmed": "You're booked.",
+        "okSubPending": "We're preparing your quote for {d}. You'll get it on WhatsApp with the details and the price. The date is only reserved once you accept.",
         "okSubConfirmed": "Your move is confirmed for {d}. See you then.",
         "okCode": "Booking code", "okType": "Move", "okDate": "Date", "okArrive": "Arrival",
         "okManage": "View or cancel booking", "okWa": "Send details on WhatsApp", "okAgain": "Book another move",
@@ -145,8 +145,8 @@ BK = {
         "bookBtn": "Reservar minha data", "sending": "Enviando…",
         "vDate": "Escolha a data da mudança.", "vWin": "Escolha manhã ou tarde.",
         "vName": "Digite seu nome.", "vPhone": "Confira o telefone, com DDD.",
-        "okPending": "Data reservada.", "okConfirmed": "Tudo certo.",
-        "okSubPending": "Recebemos seu pedido e a equipe está reservada para {d}. Vamos confirmar com você por WhatsApp ou telefone.",
+        "okPending": "Pedido recebido.", "okConfirmed": "Tudo certo.",
+        "okSubPending": "Estamos preparando seu orçamento para {d}. Você recebe no WhatsApp, com os detalhes e o valor. A data só fica reservada quando você aceitar.",
         "okSubConfirmed": "Sua mudança está confirmada para {d}. Até lá.",
         "okCode": "Código da reserva", "okType": "Mudança", "okDate": "Data", "okArrive": "Chegada",
         "okManage": "Ver ou cancelar reserva", "okWa": "Enviar os dados no WhatsApp", "okAgain": "Agendar outra mudança",
@@ -807,6 +807,22 @@ BODY = r'''
 <label for="fFrom"><span data-i18n="lFrom">{{lFrom}}</span><input type="text" id="fFrom" name="from" autocomplete="address-level2" maxlength="300" placeholder="{{phFrom}}" data-i18n-ph="phFrom"></label>
 <label for="fTo"><span data-i18n="lTo">{{lTo}}</span><input type="text" id="fTo" name="to" maxlength="300" placeholder="{{phTo}}" data-i18n-ph="phTo"></label>
 </div>
+<div class="inv" id="inv" aria-labelledby="invH"><p class="lbl" id="invH">O que vai na mudança · What's going</p><p class="inv-hint" id="invHint">Quantidades aproximadas. Pode pular o que não souber.</p><div id="invList"></div></div>
+<style>
+.inv{margin:6px 0 4px;padding:18px;border-radius:20px;background:var(--surface)}
+.inv .lbl{margin:0 0 4px}
+.inv-hint{margin:0 0 14px;color:var(--mute);font-size:14px}
+.inv-grp{padding:12px 0;border-top:1px solid var(--line)}
+.inv-grp:first-of-type{border-top:0;padding-top:0}
+.inv-grp h4{margin:0 0 6px;font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.inv-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;font-size:15px}
+.inv-row span{min-width:0;overflow-wrap:anywhere}
+.inv-step{display:inline-flex;align-items:center;gap:0;flex:none;border-radius:999px;background:#fff;border:1px solid var(--line)}
+.inv-step button{width:40px;height:40px;border:0;background:transparent;font-size:18px;cursor:pointer;color:var(--ink);border-radius:999px}
+.inv-step button:hover{background:var(--surface)}
+.inv-step button:disabled{opacity:.35;cursor:default}
+.inv-step output{min-width:28px;text-align:center;font:500 15px var(--mono)}
+</style>
 <label for="fDetails"><span data-i18n="lDetails">{{lDetails}}</span><input type="text" name="details" id="fDetails" maxlength="500" placeholder="%%MV_PH%%"></label>
 <label for="fNotes"><span data-i18n="lNotes">{{lNotes}}</span><textarea name="notes" id="fNotes" rows="2" maxlength="1000" placeholder="{{phNotes}}" data-i18n-ph="phNotes"></textarea></label>
 <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -885,7 +901,13 @@ JS = r'''
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var reduce = false;
   try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-  var state = { lang: "en", move: "house", date: null, win: null, month: null };
+  var state = { lang: "en", move: "house", date: null, win: null, month: null, inv: {} };
+  var INV = [
+    { room: "bed", en: "Bedrooms", pt: "Quartos", items: [["bed_double", "Double bed set (bed, nightstands, dresser)", "Cama de casal (cama, criados, cômoda)"], ["bed_single", "Single bed set", "Cama de solteiro"], ["bed_wardrobe", "Wardrobe", "Guarda-roupa"], ["bed_kid", "Kids' room set (bed or crib, dresser)", "Quarto infantil (cama ou berço, cômoda)"]] },
+    { room: "kitchen", en: "Kitchen", pt: "Cozinha", items: [["k_fridge", "Refrigerator", "Geladeira"], ["k_stove", "Stove / oven", "Fogão / forno"], ["k_dish", "Dishwasher", "Lava-louças"], ["k_table4", "Dining table (4 seats)", "Mesa de jantar (4 lugares)"], ["k_table6", "Dining table (6+ seats)", "Mesa de jantar (6+ lugares)"], ["k_boxes", "Kitchen boxes (approx.)", "Caixas de cozinha (aprox.)"]] },
+    { room: "living", en: "Living room", pt: "Sala", items: [["l_sofa", "Sofa (2–3 seats)", "Sofá (2–3 lugares)"], ["l_sofa_big", "Large sofa (4+ seats)", "Sofá grande (4+ lugares)"], ["l_armchair", "Armchair", "Poltrona"], ["l_tv", "TV and stand", "TV e rack"], ["l_coffee", "Coffee table", "Mesa de centro"], ["l_shelf", "Bookshelf / cabinet", "Estante / armário"]] },
+    { room: "other", en: "Other", pt: "Outros", items: [["o_laundry", "Washer / dryer", "Lavadora / secadora"], ["o_office", "Office desk and chair", "Mesa e cadeira de escritório"], ["o_piano", "Piano", "Piano"], ["o_boxes", "Extra boxes (approx.)", "Caixas extras (aprox.)"]] }
+  ];
   function cl(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
   function sm(x) { x = cl(x); return x * x * (3 - 2 * x); }
   function eio(x) { x = cl(x); return x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; }
@@ -1065,7 +1087,7 @@ JS = r'''
       p_type: sent.type, p_date: sent.date, p_win: sent.win,
       p_name: f.name.value.trim(), p_phone: f.phone.value.trim(), p_email: f.email.value.trim(),
       p_from: f.from.value.trim(), p_to: f.to.value.trim(), p_size: f.details.value.trim(), p_notes: f.notes.value.trim(),
-      p_lang: state.lang
+      p_lang: state.lang, p_inventory: invPayload()
     }).then(function (r) {
       booked = { token: r.token, code: r.code, status: r.status, type: sent.type, date: sent.date, win: sent.win };
       delete avail[sent.type];
@@ -1084,7 +1106,7 @@ JS = r'''
 
   function renderDone() {
     if (!booked) return;
-    var t = T[state.lang], m = mvOf(booked.type), dl = SB.longDate(booked.date, state.lang), pend = booked.status === "pending";
+    var t = T[state.lang], m = mvOf(booked.type), dl = SB.longDate(booked.date, state.lang), pend = booked.status !== "confirmed";
     var arr = winLabel(isHalf(booked.type) ? booked.win : "morning");
     var link = "reserva.html?t=" + encodeURIComponent(booked.token) + "&lang=" + state.lang;
     var msg = tpl(t.waBook, { t: m.title, d: SB.fmt(booked.date, state.lang, { month: "short", day: "numeric", year: "numeric" }), c: booked.code });
@@ -1132,6 +1154,38 @@ JS = r'''
     }).catch(function () {});
   }
 
+  function invCount(id) { return state.inv[id] || 0; }
+  function renderInv() {
+    var lg = state.lang, pt = lg === "pt";
+    $("#invH").textContent = pt ? "O que vai na mudança" : "What's going";
+    $("#invHint").textContent = pt ? "Quantidades aproximadas. Pode pular o que não souber." : "Rough counts are fine. Skip anything you're not sure about.";
+    $("#invList").innerHTML = INV.map(function (g) {
+      return '<div class="inv-grp"><h4>' + esc(pt ? g.pt : g.en) + "</h4>" + g.items.map(function (it) {
+        var n = invCount(it[0]);
+        return '<div class="inv-row"><span>' + esc(pt ? it[2] : it[1]) + '</span><div class="inv-step">' +
+          '<button type="button" data-inv="' + it[0] + '" data-d="-1" aria-label="' + (pt ? "Diminuir" : "Less") + '"' + (n ? "" : " disabled") + ">&minus;</button>" +
+          '<output aria-live="polite">' + n + '</output><button type="button" data-inv="' + it[0] + '" data-d="1" aria-label="' + (pt ? "Aumentar" : "More") + '"' + (n >= 9 ? " disabled" : "") + ">+</button></div></div>";
+      }).join("") + "</div>";
+    }).join("");
+  }
+  function invPayload() {
+    var out = [];
+    INV.forEach(function (g) {
+      g.items.forEach(function (it) {
+        var q = invCount(it[0]);
+        if (q > 0) out.push({ room: g.room, item: it[1], item_pt: it[2], qty: q });
+      });
+    });
+    return out;
+  }
+  $("#invList").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button[data-inv]");
+    if (!b || b.disabled) return;
+    var id = b.dataset.inv, n = invCount(id) + Number(b.dataset.d);
+    state.inv[id] = Math.max(0, Math.min(9, n));
+    renderInv();
+  });
+
   function setLang(l) {
     state.lang = l === "pt" ? "pt" : "en";
     var t = T[state.lang];
@@ -1147,7 +1201,7 @@ JS = r'''
     $("#miniMoves").innerHTML = MOVES[state.lang].slice(0, 6).map(function (m) { return "<li>" + esc(m.label) + "</li>"; }).join("");
     menuBtn.setAttribute("aria-label", menuBtn.getAttribute("aria-expanded") === "true" ? t.menuClose : t.menu);
     if (busy) $("#bookTxt").textContent = t.sending;
-    renderMove(false); renderCal(); renderWin(); renderSum(); renderDone();
+    renderMove(false); renderCal(); renderWin(); renderSum(); renderInv(); renderDone();
     hudText = "";
     queue();
     try { localStorage.setItem("shammah-lang", state.lang); } catch (e) {}
