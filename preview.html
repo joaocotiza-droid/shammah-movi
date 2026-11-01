@@ -1086,11 +1086,22 @@ footer{padding-block:28px calc(36px + env(safe-area-inset-bottom,0px))}
     var btn = $("#bookBtn"), txt = $("#bookTxt");
     btn.disabled = true; txt.textContent = t.sending;
     var sent = { type: state.move, date: state.date, win: state.win || "morning" };
-    SB.rpc("book_move", {
+    var inv = invPayload();
+    var args = {
       p_type: sent.type, p_date: sent.date, p_win: sent.win,
       p_name: f.name.value.trim(), p_phone: f.phone.value.trim(), p_email: f.email.value.trim(),
       p_from: f.from.value.trim(), p_to: f.to.value.trim(), p_size: f.details.value.trim(), p_notes: f.notes.value.trim(),
-      p_lang: state.lang, p_inventory: invPayload()
+      p_lang: state.lang, p_inventory: inv
+    };
+    SB.rpc("book_move", args).catch(function (e) {
+      // Older database without the inventory parameter: resend with the list folded into the notes.
+      if (!(e && (e.code === "PGRST202" || e.status === 404 || /p_inventory|Could not find the function/i.test(e.message || "")))) throw e;
+      var legacy = Object.assign({}, args); delete legacy.p_inventory;
+      if (inv.length) {
+        var list = inv.map(function (it) { return it.qty + "x " + (state.lang === "pt" ? it.item_pt : it.item); }).join("; ");
+        legacy.p_notes = ((legacy.p_notes ? legacy.p_notes + "\n" : "") + (state.lang === "pt" ? "Itens: " : "Items: ") + list).slice(0, 1000);
+      }
+      return SB.rpc("book_move", legacy);
     }).then(function (r) {
       booked = { token: r.token, code: r.code, status: r.status, type: sent.type, date: sent.date, win: sent.win };
       delete avail[sent.type];
