@@ -123,7 +123,8 @@ footer{padding:22px 12px calc(28px + env(safe-area-inset-bottom,0px));text-align
       dec_h: "Not right yet?", dec_p: "Tell us what to change. Optional.", dec_ph: "For example: date doesn't work, or price is too high", send_dec: "Send decline", back: "Back",
       accepted_ok: "Quote accepted. Your date is booked.", declined_ok: "Quote declined.", err_fail: "We couldn't save that. Please message us.",
       bad: "This quote link isn't valid.", bad_l: "Please check the link or message us.", offline: "We couldn't load this quote right now.", offline_l: "Try again in a moment or message us.",
-      wa: "Message us on WhatsApp", call: "Call", aGo: "Confirm" },
+      wa: "Message us on WhatsApp", call: "Call", aGo: "Confirm",
+      cal_h: "Add it to your calendar", cal_p: "So you don't miss moving day.", gcal: "Google Calendar", ical: "Apple / Outlook", ev: "Moving day · Shammah Moving", evArr: "Crew arrival", evCode: "Code" },
     pt: { st_request: "Em orçamento", st_quoted: "Orçamento pronto", st_accepted: "Confirmada", st_confirmed: "Confirmada", st_declined: "Orçamento recusado", st_cancelled: "Cancelada",
       h_request: ["Seu orçamento está", "sendo preparado."], h_quoted: ["Seu orçamento", "está pronto."], h_accepted: ["Tudo certo,", "data reservada."], h_confirmed: ["Tudo certo,", "data reservada."], h_declined: ["Orçamento", "recusado."], h_cancelled: ["Reserva", "cancelada."],
       l_request: "Nossa equipe está analisando sua lista e vai mandar o orçamento pelo WhatsApp.", l_quoted: "Confira os detalhes abaixo. Aceite para reservar a data, ou recuse e nos diga o que ajustar.",
@@ -133,7 +134,8 @@ footer{padding:22px 12px calc(28px + env(safe-area-inset-bottom,0px));text-align
       dec_h: "Algo não está certo?", dec_p: "Conte o que ajustar. Opcional.", dec_ph: "Por exemplo: a data não serve, ou o valor está alto", send_dec: "Enviar recusa", back: "Voltar",
       accepted_ok: "Orçamento aceito. Sua data está reservada.", declined_ok: "Orçamento recusado.", err_fail: "Não foi possível salvar. Chame a gente pelo WhatsApp.",
       bad: "Este link de orçamento não é válido.", bad_l: "Confira o link ou chame a gente.", offline: "Não foi possível carregar o orçamento agora.", offline_l: "Tente de novo em instantes ou chame a gente.",
-      wa: "Chamar no WhatsApp", call: "Ligar", aGo: "Confirmar" }
+      wa: "Chamar no WhatsApp", call: "Ligar", aGo: "Confirmar",
+      cal_h: "Coloque na sua agenda", cal_p: "Para não esquecer o dia da mudança.", gcal: "Google Agenda", ical: "Apple / Outlook", ev: "Dia da mudança · Shammah Moving", evArr: "Chegada da equipe", evCode: "Código" }
   };
   var CODE = { request: "request", pending: "quoted", confirmed: "confirmed", done: "confirmed", cancelled: "cancelled", declined: "declined" };
 
@@ -160,6 +162,50 @@ footer{padding:22px 12px calc(28px + env(safe-area-inset-bottom,0px));text-align
         }).join("") + "</ul></div>";
     }).join("") || '<p class="lead">—</p>';
   }
+  /* Calendar event in the move's local time (America/New_York): full day 8 AM to 5 PM,
+     half day morning 8 AM to 12 PM, afternoon 1 PM to 5 PM. */
+  function calSpan(d) {
+    var full = d.span !== "half", pm = d.win === "afternoon";
+    return full ? [8, 17] : pm ? [13, 17] : [8, 12];
+  }
+  function tstamp(ds, h) { return ds.replace(/-/g, "") + "T" + (h < 10 ? "0" : "") + h + "0000"; }
+  function evText(d) {
+    var t = T[lang];
+    return {
+      title: t.ev,
+      details: t.evArr + ": " + (d.win_label || "") + "\n" + t.evCode + ": " + d.code + (d.whatsapp ? "\nWhatsApp: +" + d.whatsapp : "") + "\n" + location.origin + location.pathname + "?t=" + token,
+      where: d.from_addr || ""
+    };
+  }
+  function gcalUrl(d) {
+    var h = calSpan(d), e = evText(d);
+    return "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(e.title) +
+      "&dates=" + tstamp(d.date, h[0]) + "/" + tstamp(d.date, h[1]) + "&ctz=America/New_York" +
+      "&details=" + encodeURIComponent(e.details) + "&location=" + encodeURIComponent(e.where);
+  }
+  function icsEsc(v) { return String(v).replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1"); }
+  function icsHref(d) {
+    var h = calSpan(d), e = evText(d), now = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+    var L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Shammah Moving//Booking//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+      "BEGIN:VTIMEZONE", "TZID:America/New_York",
+      "BEGIN:DAYLIGHT", "TZOFFSETFROM:-0500", "TZOFFSETTO:-0400", "TZNAME:EDT", "DTSTART:19700308T020000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU", "END:DAYLIGHT",
+      "BEGIN:STANDARD", "TZOFFSETFROM:-0400", "TZOFFSETTO:-0500", "TZNAME:EST", "DTSTART:19701101T020000", "RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU", "END:STANDARD",
+      "END:VTIMEZONE",
+      "BEGIN:VEVENT", "UID:" + d.code + "@shammahmoving.com", "DTSTAMP:" + now,
+      "DTSTART;TZID=America/New_York:" + tstamp(d.date, h[0]), "DTEND;TZID=America/New_York:" + tstamp(d.date, h[1]),
+      "SUMMARY:" + icsEsc(e.title), "DESCRIPTION:" + icsEsc(e.details), "LOCATION:" + icsEsc(e.where),
+      "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", "DESCRIPTION:" + icsEsc(e.title), "END:VALARM",
+      "END:VEVENT", "END:VCALENDAR"];
+    return "data:text/calendar;charset=utf-8," + encodeURIComponent(L.join("\r\n") + "\r\n");
+  }
+  function calBlock(d) {
+    var t = T[lang];
+    return '<div class="decide cal"><h3>' + esc(t.cal_h) + "</h3><p>" + esc(t.cal_p) + '</p><div class="acts">' +
+      '<a class="btn btn-ink" id="gcal" target="_blank" rel="noopener" href="' + esc(gcalUrl(d)) + '">' + CAL_ICON + esc(t.gcal) + "</a>" +
+      '<a class="btn btn-line" id="ical" download="shammah-' + esc(d.code) + '.ics" href="' + esc(icsHref(d)) + '">' + CAL_ICON + esc(t.ical) + "</a></div></div>";
+  }
+  var CAL_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg>';
+
   function render() {
     var t = T[lang], d = data, code = CODE[d.status] || "request";
     var arr = d.win_label || "";
@@ -171,7 +217,7 @@ footer{padding:22px 12px calc(28px + env(safe-area-inset-bottom,0px));text-align
       row(t.move, m) + row(t.from, d.from_addr) + row(t.to, d.to_addr) + '<div style="margin-top:14px;padding-top:6px;border-top:1px solid #2a2a2f">' + itemsHtml(d.inventory) + "</div>" +
       (d.price_cents != null && code !== "request" ? '<p class="price-n">' + esc(t.total) + '</p><p class="price">' + esc(SB.money(d.price_cents)) + "</p>" : "") +
       "</div>";
-    var decide = "";
+    var decide = code === "confirmed" ? calBlock(d) : "";
     if (code === "quoted") {
       decide = '<div class="decide"><h3>' + esc(t.acc_h) + '</h3><p>' + esc(t.acc_p) + '</p><div class="acts"><button class="btn btn-ink" id="accept" type="button">' + esc(t.accept) + '</button></div>' +
         '<div style="margin-top:22px"><h3 style="font-size:20px">' + esc(t.dec_h) + '</h3><p>' + esc(t.dec_p) + '</p><textarea id="reason" maxlength="500" placeholder="' + esc(t.dec_ph) + '"></textarea><div class="acts"><button class="btn btn-line" id="decline" type="button">' + esc(t.send_dec) + "</button></div></div></div>";
