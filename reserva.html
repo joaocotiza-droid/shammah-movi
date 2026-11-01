@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Your booking · Shammah Moving</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="preload" href="/assets/fonts/geist-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:"Barlow Condensed";font-style:italic;font-weight:900;font-display:swap;src:url(/assets/fonts/barlow-condensed-latin-900-italic.woff2) format("woff2")}
+@font-face{font-family:"Geist";font-style:normal;font-weight:400;font-display:swap;src:url(/assets/fonts/geist-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Geist";font-style:normal;font-weight:500;font-display:swap;src:url(/assets/fonts/geist-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Geist";font-style:normal;font-weight:600;font-display:swap;src:url(/assets/fonts/geist-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Geist Mono";font-style:normal;font-weight:500;font-display:swap;src:url(/assets/fonts/geist-mono-latin-500-normal.woff2) format("woff2")}
+:root{--bg:#fff;--surface:#f3f3f1;--ink:#121214;--mute:#66666d;--line:#e3e3df;--orange:#ff6b1a;--orange-hi:#ff8540;--night:#0d0d0f;
+--sans:Geist,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;--mono:"Geist Mono",ui-monospace,Menlo,monospace;--disp:"Barlow Condensed","Arial Narrow",Impact,sans-serif;--ease:cubic-bezier(.2,.7,.2,1);color-scheme:light}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100svh;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:400 17px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--orange);outline-offset:3px;border-radius:8px}
+.top{width:min(1180px,100% - 24px);margin:14px auto 0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 7px 7px 16px;border-radius:999px;background:var(--surface)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand img{width:34px;height:34px;border-radius:50%}
+.brand b{font-family:var(--disp);font-style:italic;font-weight:900;font-size:21px;letter-spacing:.03em;line-height:1}
+.top-r{display:flex;align-items:center;gap:8px}
+.lang{display:flex;padding:3px;border-radius:999px;background:#fff}
+.lang button{min-height:30px;min-width:38px;padding:0 10px;border:0;border-radius:999px;background:transparent;color:#55555b;font:600 12px var(--mono);letter-spacing:.06em;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 24px;border-radius:999px;font:600 15px var(--sans);text-decoration:none;border:1px solid transparent;cursor:pointer;white-space:nowrap;transition:transform .2s var(--ease),background-color .25s,border-color .25s}
+.btn:active{transform:scale(.97)}
+.btn-ink{background:var(--ink);color:#fff}.btn-ink:hover{background:#2a2a2e}
+.btn-o{background:var(--orange);color:var(--ink)}.btn-o:hover{background:var(--orange-hi)}
+.btn-line{background:#fff;border-color:var(--line)}.btn-line:hover{border-color:var(--ink)}
+.btn-sm{min-height:42px;padding:0 18px;font-size:14px}
+.btn-bad{background:#c53b12;color:#fff}.btn-bad:hover{background:#a8310e}
+.btn[disabled]{opacity:.6;cursor:progress}
+main{flex:1;width:min(1180px,100% - 24px);margin:0 auto;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(24px,5vw,72px);align-items:center;padding:clamp(28px,6vw,72px) 0}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--surface);font:500 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--orange)}
+.chip.off i{background:#b6b6bc}
+h1{margin:18px 0 16px;font-weight:500;font-size:clamp(44px,6.4vw,92px);line-height:.96;letter-spacing:-.05em}
+h1 span{display:block}
+h1 .o{color:var(--orange)}
+.lead{margin:0 0 28px;color:var(--mute);max-width:32em;font-size:18px}
+.acts{display:flex;flex-wrap:wrap;gap:10px}
+.confirm{display:none;margin-top:22px;padding:20px;border-radius:20px;background:var(--surface);max-width:34em}
+.confirm.on{display:block;animation:pop .3s var(--ease)}
+.confirm p{margin:0 0 14px;font-weight:600}
+.note{margin:18px 0 0;color:var(--mute);font-size:14px;max-width:34em}
+.ticket{border-radius:28px;background:var(--night);color:#f4f4f2;padding:clamp(24px,3vw,36px);position:relative}
+.ticket.cancelled{opacity:.7}
+.code{font:500 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--orange)}
+.when{margin:14px 0 4px;font-weight:500;font-size:clamp(34px,4vw,48px);line-height:1.02;letter-spacing:-.04em}
+.ticket.cancelled .when{text-decoration:line-through;text-decoration-thickness:2px}
+.arrive{margin:0;color:#b5b5ba}
+.cut{position:relative;border-top:1px dashed #3a3a3f;margin:26px calc(-1 * clamp(24px,3vw,36px)) 18px}
+.cut::before,.cut::after{content:"";position:absolute;top:-12px;width:24px;height:24px;border-radius:50%;background:var(--bg)}
+.cut::before{left:-12px}.cut::after{right:-12px}
+.row{display:flex;justify-content:space-between;gap:20px;padding:7px 0;font-size:15px}
+.row span{color:#8f8f96;flex:none}
+.row b{font-weight:500;text-align:right;overflow-wrap:anywhere}
+.skel{background:linear-gradient(90deg,#f0f0ee,#e6e6e3,#f0f0ee);background-size:200% 100%;animation:sk 1.2s linear infinite;border-radius:14px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;padding:12px 18px;border-radius:999px;background:var(--ink);color:#fff;font-size:14px;z-index:50;transition:opacity .25s,transform .25s;pointer-events:none;max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}.toast.err{background:#c53b12}
+footer{padding:22px 12px calc(28px + env(safe-area-inset-bottom,0px));text-align:center;color:var(--mute);font-size:13px}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}}
+@keyframes sk{to{background-position:-200% 0}}
+@media (max-width:860px){main{grid-template-columns:minmax(0,1fr)}.ticket{order:-1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+<a class="brand" href="index.html" aria-label="Shammah Moving"><img src="/assets/logo-160.png" alt="" width="34" height="34"><b>SHAMMAH</b></a>
+<div class="top-r"><div class="lang" role="group" aria-label="Language"><button type="button" data-lang="en" aria-pressed="true">EN</button><button type="button" data-lang="pt" aria-pressed="false">PT</button></div></div>
+</header>
+<main id="main">
+<div><div class="skel" style="height:40px;width:42%"></div><div class="skel" style="height:96px;width:86%;margin-top:22px"></div><div class="skel" style="height:22px;width:70%;margin-top:22px"></div></div>
+<div class="skel" style="height:360px;border-radius:28px"></div>
+</main>
+<footer id="foot">Shammah Moving · Windermere, FL</footer>
+<script src="/assets/sb.js"></script>
+<script>
+(function () {
+  var esc = SB.esc, main = document.getElementById("main");
+  var token = new URLSearchParams(location.search).get("t");
+  var lang = "en", data = null;
+  try {
+    var q = new URLSearchParams(location.search).get("lang");
+    lang = q === "pt" || q === "en" ? q : (localStorage.getItem("shammah-lang") || (/^pt/i.test(navigator.language || "") ? "pt" : "en"));
+  } catch (e) {}
+  var T = {
+    en: {
+      title: "Your booking · Shammah Moving",
+      pending: "Awaiting confirmation", confirmed: "Confirmed", done: "Completed", cancelled: "Cancelled",
+      hPending: ["Your date is held,", "{n}."], hConfirmed: ["You're booked,", "{n}."], hCancelled: ["Booking", "cancelled."], hDone: ["Thanks for", "moving with us."], hPast: ["This booking", "has passed."],
+      lPending: "We'll confirm by WhatsApp or phone. If anything changes, message us.",
+      lConfirmed: "Your crew is set. If anything changes, message us as early as you can.",
+      lCancelled: "The date went back on the calendar. Whenever you're ready, book another one.",
+      lDone: "This move is complete. We hope everything landed where you wanted it.",
+      lPast: "The date has passed. Message us if you need to adjust anything.",
+      cancel: "Cancel booking", yes: "Yes, cancel", no: "Keep it", ask: "Cancel {t} on {d}?",
+      wa: "Message us on WhatsApp", call: "Call", again: "Book another move",
+      late: "To change or cancel a booking for tomorrow or today, please call or message us.",
+      code: "Code", move: "Move", date: "Date", arrive: "Arrival", from: "From", to: "To", size: "Size",
+      cancelled_ok: "Booking cancelled.", cancel_fail: "We couldn't cancel this booking. Please message us.",
+      notfound: ["We couldn't find", "that booking."], notfoundL: "Check that the link is complete. You can also book a new date.", offline: ["No connection", "right now."], offlineL: "Refresh the page in a moment.",
+      waMsg: "Hi Shammah! About my booking {c} ({t} on {d})."
+    },
+    pt: {
+      title: "Sua reserva · Shammah Moving",
+      pending: "Aguardando confirmação", confirmed: "Confirmada", done: "Concluída", cancelled: "Cancelada",
+      hPending: ["Sua data está reservada,", "{n}."], hConfirmed: ["Tudo certo,", "{n}."], hCancelled: ["Reserva", "cancelada."], hDone: ["Obrigado por", "mudar com a gente."], hPast: ["Essa reserva", "já passou."],
+      lPending: "Vamos confirmar por WhatsApp ou telefone. Se algo mudar, chame a gente.",
+      lConfirmed: "Sua equipe está definida. Se algo mudar, avise o quanto antes.",
+      lCancelled: "A data voltou para o calendário. Quando quiser, é só agendar outra.",
+      lDone: "Essa mudança foi concluída. Esperamos que tudo tenha ficado onde você queria.",
+      lPast: "A data já passou. Chame a gente se precisar ajustar algo.",
+      cancel: "Cancelar reserva", yes: "Sim, cancelar", no: "Manter", ask: "Cancelar {t} em {d}?",
+      wa: "Chamar no WhatsApp", call: "Ligar", again: "Agendar outra mudança",
+      late: "Para alterar ou cancelar uma reserva para hoje ou amanhã, ligue ou mande mensagem.",
+      code: "Código", move: "Mudança", date: "Data", arrive: "Chegada", from: "Saindo de", to: "Indo para", size: "Tamanho",
+      cancelled_ok: "Reserva cancelada.", cancel_fail: "Não foi possível cancelar. Chame a gente.",
+      notfound: ["Não encontramos", "essa reserva."], notfoundL: "Confira se o link está completo. Você também pode agendar uma nova data.", offline: ["Sem conexão", "agora."], offlineL: "Atualize a página em instantes.",
+      waMsg: "Olá, Shammah! Sobre a minha reserva {c} ({t} em {d})."
+    }
+  };
+  function tpl(s, o) { return s.replace(/\{(\w+)\}/g, function (m, k) { return o[k] != null ? o[k] : m; }); }
+  function head(pair, o) { return "<span>" + esc(tpl(pair[0], o || {})) + '</span><span class="o">' + esc(tpl(pair[1], o || {})) + "</span>"; }
+  function setLangButtons() {
+    document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
+    document.title = T[lang].title;
+    Array.prototype.forEach.call(document.querySelectorAll(".lang button"), function (b) { b.setAttribute("aria-pressed", b.dataset.lang === lang ? "true" : "false"); });
+  }
+  function bad(h, l) {
+    main.innerHTML = '<div><h1>' + head(h) + '</h1><p class="lead">' + esc(l) + '</p><div class="acts"><a class="btn btn-ink" href="index.html#quote">' + esc(T[lang].again) + "</a></div></div><div></div>";
+  }
+  function render() {
+    setLangButtons();
+    var t = T[lang];
+    if (!data) return;
+    var b = data, ds = b.date, today = SB.today(), past = ds < today, st = b.status;
+    var type = lang === "pt" ? b.type_pt : b.type_en, longD = SB.longDate(ds, lang);
+    var arrive = b.span === "full" || b.win === "morning" ? b.morning_label : b.afternoon_label;
+    var title = st === "cancelled" ? t.hCancelled : st === "done" ? t.hDone : past ? t.hPast : st === "confirmed" ? t.hConfirmed : t.hPending;
+    var lead = st === "cancelled" ? t.lCancelled : st === "done" ? t.lDone : past ? t.lPast : st === "confirmed" ? t.lConfirmed : t.lPending;
+    var first = String(b.name || "").split(" ")[0];
+    var active = (st === "pending" || st === "confirmed") && !past;
+    var waNum = String(b.whatsapp || "").replace(/\D/g, "");
+    var waLink = "https://wa.me/" + waNum + "?text=" + encodeURIComponent(tpl(t.waMsg, { c: b.code, t: type, d: SB.fmt(ds, lang, { month: "short", day: "numeric", year: "numeric" }) }));
+    var tel = String(b.phone || "").replace(/[^\d+]/g, "");
+    var acts = "";
+    if (b.can_cancel) acts += '<button class="btn btn-line" id="cancel" type="button">' + esc(t.cancel) + "</button>";
+    if (waNum) acts += '<a class="btn btn-o" href="' + esc(waLink) + '" target="_blank" rel="noopener">' + esc(t.wa) + "</a>";
+    if (tel) acts += '<a class="btn btn-line" href="tel:' + esc(tel) + '">' + esc(t.call) + " " + esc(b.phone) + "</a>";
+    if (!active) acts += '<a class="btn btn-ink" href="index.html#quote">' + esc(t.again) + "</a>";
+    function row(k, v) { return v ? '<div class="row"><span>' + esc(k) + "</span><b>" + esc(v) + "</b></div>" : ""; }
+    main.innerHTML =
+      '<div><span class="chip' + (active || st === "done" ? "" : " off") + '"><i></i>' + esc(t[st]) + "</span><h1>" + head(title, { n: first }) + '</h1><p class="lead">' + esc(lead) + "</p>" +
+      '<div class="acts">' + acts + "</div>" +
+      (b.can_cancel ? '<div class="confirm" id="conf"><p>' + esc(tpl(t.ask, { t: type.toLowerCase(), d: SB.fmt(ds, lang, { month: "long", day: "numeric" }) })) + '</p><div class="acts"><button class="btn btn-bad btn-sm" id="yes" type="button">' + esc(t.yes) + '</button><button class="btn btn-line btn-sm" id="no" type="button">' + esc(t.no) + "</button></div></div>" : "") +
+      (active && !b.can_cancel ? '<p class="note">' + esc(t.late) + "</p>" : "") +
+      '</div><div class="ticket' + (st === "cancelled" ? " cancelled" : "") + '"><div class="code">' + esc(t.code) + " " + esc(b.code) + '</div><p class="when">' + esc(longD) + '</p><p class="arrive">' + esc(t.arrive) + " · " + esc(arrive) + '</p><div class="cut"></div>' +
+      row(t.move, type) + row(t.from, b.from) + row(t.to, b.to) + row(t.size, b.size) + "</div>";
+    var cancel = document.getElementById("cancel");
+    if (cancel) {
+      var conf = document.getElementById("conf");
+      cancel.onclick = function () { conf.classList.add("on"); };
+      document.getElementById("no").onclick = function () { conf.classList.remove("on"); };
+      document.getElementById("yes").onclick = function () {
+        var y = this; y.disabled = true;
+        SB.rpc("cancel_booking", { p_token: token }).then(function (ok) {
+          if (ok) { SB.toast(t.cancelled_ok); load(); }
+          else { SB.toast(t.cancel_fail, true); load(); }
+        }).catch(function (e) { y.disabled = false; SB.toast(SB.errText(e, lang), true); });
+      };
+    }
+  }
+  function load() {
+    SB.rpc("get_booking", { p_token: token }).then(function (b) {
+      if (!b) { data = null; setLangButtons(); bad(T[lang].notfound, T[lang].notfoundL); return; }
+      data = b; render();
+    }).catch(function () { data = null; setLangButtons(); bad(T[lang].offline, T[lang].offlineL); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".lang button"), function (b) {
+    b.addEventListener("click", function () {
+      lang = b.dataset.lang;
+      try { localStorage.setItem("shammah-lang", lang); } catch (e) {}
+      if (data) render(); else { setLangButtons(); if (!/^[0-9a-f-]{36}$/i.test(token || "")) bad(T[lang].notfound, T[lang].notfoundL); }
+    });
+  });
+  setLangButtons();
+  if (!/^[0-9a-f-]{36}$/i.test(token || "")) { bad(T[lang].notfound, T[lang].notfoundL); return; }
+  load();
+})();
+</script>
+</body>
+</html>

@@ -1,206 +1,167 @@
-"""Builds index.html for the Shammah Moving site from one bilingual content source.
+"""Shammah Moving, version 3 (light layout, brand orange and black).
 
 Run:  python3 build.py
-English is written into the HTML (what search engines and link previews read);
-the same dictionary is embedded for the EN/PT switch.
+Writes index.html (the real site, for Vercel) and preview.html (same page, for the Claude preview).
+Text lives in content.py (shared with v1 and v2) plus the v3 additions below.
+The loading-truck illustration lives in truck.py (shared with v2).
 """
+import base64
 import html
 import json
+import re
 from pathlib import Path
 
-WA = "14074856775"
-IG = "https://www.instagram.com/shammahmoving/"
-PHONE = "+14074856775"
-PHONE_LABEL = "(407) 485-6775"
-EMAIL = "contact@shammahmoving.com"
-# Public address of the site; used for link previews (WhatsApp, Instagram, Facebook) and Google.
-SITE_URL = "https://shammah-moving.vercel.app"
+from content import T, SVC, FAQ, MOVES, WA, IG, PHONE, PHONE_LABEL, EMAIL, SITE_URL
+from truck import truck_svg, ITEM_DATA
 
-T = {
+HERE = Path(__file__).parent
+FMCSA = "https://safer.fmcsa.dot.gov/query.asp?searchtype=ANY&query_type=queryCarrierSnapshot&query_param=USDOT&query_string=1547896"
+
+ADD = {
     "en": {
-        "metaTitle": "Shammah Moving | Movers in Windermere & Orlando, FL",
-        "metaDesc": "Local, interstate and international moving out of Windermere, Florida. Packing, freight, storage and piano moves. We speak English and Portuguese. Get a quote on WhatsApp.",
-        "navQuote": "Get a quote", "navServices": "Services", "navHow": "How it works", "navFaq": "FAQ",
-        "langAria": "Language",
-        "heroKicker": "Hey, Windermere. We're here.",
-        "heroA": "Moving?", "heroB": "Just call Shammah.",
-        "heroSub": "Local, interstate and international moves out of Windermere, Florida. Tell us what you're moving on WhatsApp and we'll come back with a plan and a quote.",
-        "ctaWa": "WhatsApp us", "ctaQuote": "Get a quote",
-        "heroAlt": "Shammah truck parked at a home in Windermere, Florida",
-        "f1a": "Since 2008", "f1b": "Moving families and businesses in Central Florida.",
-        "f2a": "USDOT 1547896", "f2b": "Registered with the U.S. Department of Transportation.",
-        "f3a": "In · Out", "f3b": "Local, interstate and international.",
-        "f4a": "EN · PT", "f4b": "We speak English and Portuguese.",
-        "qTitle": "Get a quote",
-        "qSub": "Pick your type of move, fill in what you know and send it. It goes straight to our WhatsApp.",
-        "qGroup": "Type of move", "qDetails": "Your details",
-        "lFrom": "Moving from", "lTo": "Moving to", "lDate": "Moving date", "lDetails": "Size or items",
-        "phFrom": "City or ZIP", "phTo": "City, ZIP or country",
-        "sendWa": "Send on WhatsApp",
-        "sendNote": "WhatsApp opens with your message ready. Nothing is sent until you tap send.",
-        "msgHi": "Hi Shammah! I'd like a quote.", "msgType": "Move", "msgFrom": "From", "msgTo": "To",
-        "msgDate": "Date", "msgDet": "Details",
-        "waGeneral": "Hi Shammah! I'd like a quote for my move.",
-        "svcTitle": "Our services",
-        "svcSub": "Local, interstate, international, packing, freight and storage. One crew from start to finish.",
-        "svcAlso": "Also: pianos, furniture assembly, loading and unloading.",
-        "howTitle": "How it works",
-        "h1t": "Message us", "h1d": "Tell us where you're moving from, where to and when. Photos of the big pieces help a lot.",
-        "h2t": "Get your quote", "h2d": "We size the crew and the truck for your move and send you a written estimate.",
-        "h3t": "Moving day", "h3d": "We show up on time, protect your floors and furniture, and put everything where you want it.",
-        "igTitle": "See us in action",
-        "igSub": "Real moves, behind the scenes and what our clients say. It's all on our Instagram.",
-        "igCta": "Follow @shammahmoving",
-        "ig1": "Services", "ig2": "In action", "ig3": "Packing", "ig4": "Reviews",
-        "langTitle": "Fala português?\nA gente também.",
-        "langSub": "Coming from Brazil or moving across town, you can talk to us in Portuguese from the first message to the last box. Switch the site to PT at the top.",
-        "langCta": "Chamar no WhatsApp",
-        "faqTitle": "FAQ",
-        "endA": "Need to move?", "endB": "Just call Shammah.",
-        "endSub": "Send us your move today. We'll take it from there.",
-        "call": "Call",
-        "fabAria": "Message Shammah Moving on WhatsApp",
-        "footRights": "© 2026 Shammah Moving · Windermere, FL · USDOT 1547896",
+        "heroKicker": "Windermere · Orlando · Central Florida",
+        "hc1T": "We speak your language", "hc1D": "English and Portuguese, from the first message to the last box.",
+        "hc2T": "Since 2008", "hc2D": "Moving families and businesses in Central Florida.",
+        "tLocal": "Local", "tInter": "Interstate", "tIntl": "International",
+        "aboutEyebrow": "About us",
+        "ab1": "A Windermere crew for the move", "ab2": "across town", "ab3": "and the one", "ab4": "across the ocean.",
+        "fEst": "Since", "b11": "types of move, from a single sofa to a full house overseas.",
+        "bLang": "Talk to us in English or Portuguese, from quote to delivery.",
+        "verify": "Verify on FMCSA",
+        "loadEyebrow": "On moving day", "loadA": "Every piece", "loadB": "has its place.",
+        "packedA": "Packed.", "packedB": "Next stop: your new home.",
+        "hudLoading": "Loading", "hudPacked": "Packed", "hudRoad": "On the way",
+        "scrollHint": "Keep scrolling",
+        "svcLead": "From a single sofa to a whole house overseas, one crew plans it, packs it and moves it.",
+        "svc_local_r": "Windermere → Orlando", "svc_interstate_r": "Florida → Georgia",
+        "svc_intl_r": "MCO → GRU", "svc_packing_r": "Fragile · This side up",
+        "svc_freight_r": "Pickup → Drop-off",
+        "alsoTitle": "Also on the truck",
+        "prev": "Previous service", "next": "Next service", "quoteThis": "Quote this move",
+        "qH3": "Everything starts with a quote.",
+        "st1": "Move type", "st2": "Details", "st3": "Send",
+        "mvInc": "Included", "mvFoot": "We reply in English or Portuguese.",
+        "endC1D": "Message us with what you're moving. Photos help.",
+        "endC2D": "Prefer to talk? Give us a call.",
+        "endC3D": "Real moves and behind the scenes.",
+        "open": "Open", "igLine": "Real moves and behind the scenes on Instagram.",
+        "menu": "Menu", "menuClose": "Close menu",
     },
     "pt": {
-        "metaTitle": "Shammah Moving | Mudanças em Windermere e Orlando, FL",
-        "metaDesc": "Mudanças locais, interestaduais e internacionais saindo de Windermere, Flórida. Embalagem, fretes, armazenagem e pianos. Atendimento em português. Orçamento pelo WhatsApp.",
-        "navQuote": "Orçamento", "navServices": "Serviços", "navHow": "Como funciona", "navFaq": "Dúvidas",
-        "langAria": "Idioma",
-        "heroKicker": "Hey, Windermere. Chegamos.",
-        "heroA": "Vai se mudar?", "heroB": "É só Shammah.",
-        "heroSub": "Mudanças locais, interestaduais e internacionais saindo de Windermere, na Flórida. Conte no WhatsApp o que você vai mudar e a gente volta com um plano e o orçamento.",
-        "ctaWa": "Chamar no WhatsApp", "ctaQuote": "Pedir orçamento",
-        "heroAlt": "Caminhão da Shammah em uma casa em Windermere, Flórida",
-        "f1a": "Desde 2008", "f1b": "Mudando famílias e empresas na Flórida Central.",
-        "f2a": "USDOT 1547896", "f2b": "Registrada no Departamento de Transportes dos EUA.",
-        "f3a": "In · Out", "f3b": "Local, interestadual e internacional.",
-        "f4a": "EN · PT", "f4b": "Atendemos em português e inglês.",
-        "qTitle": "Peça seu orçamento",
-        "qSub": "Escolha o tipo de mudança, preencha o que você já sabe e envie. Cai direto no nosso WhatsApp.",
-        "qGroup": "Tipo de mudança", "qDetails": "Seus dados",
-        "lFrom": "Saindo de", "lTo": "Indo para", "lDate": "Data da mudança", "lDetails": "Tamanho ou itens",
-        "phFrom": "Cidade ou ZIP", "phTo": "Cidade, ZIP ou país",
-        "sendWa": "Enviar no WhatsApp",
-        "sendNote": "O WhatsApp abre com a mensagem pronta. Nada é enviado até você tocar em enviar.",
-        "msgHi": "Olá, Shammah! Gostaria de um orçamento.", "msgType": "Mudança", "msgFrom": "Saindo de",
-        "msgTo": "Indo para", "msgDate": "Data", "msgDet": "Detalhes",
-        "waGeneral": "Olá, Shammah! Gostaria de um orçamento para a minha mudança.",
-        "svcTitle": "Nossos serviços",
-        "svcSub": "Local, interestadual, internacional, embalagem, fretes e armazenagem. Uma equipe só, do começo ao fim.",
-        "svcAlso": "Também: pianos, montagem de móveis, carga e descarga.",
-        "howTitle": "Como funciona",
-        "h1t": "Chame a gente", "h1d": "Conte de onde sai, para onde vai e quando. Fotos dos móveis grandes ajudam muito.",
-        "h2t": "Receba o orçamento", "h2d": "Definimos a equipe e o caminhão certos para a sua mudança e mandamos o orçamento por escrito.",
-        "h3t": "Dia da mudança", "h3d": "Chegamos no horário, protegemos piso e móveis e deixamos tudo onde você quiser.",
-        "igTitle": "Veja a gente em ação",
-        "igSub": "Mudanças de verdade, bastidores e o que os clientes falam. Tá tudo no nosso Instagram.",
-        "igCta": "Seguir @shammahmoving",
-        "ig1": "Serviços", "ig2": "Em ação", "ig3": "Embalagem", "ig4": "Depoimentos",
-        "langTitle": "Brasileiro\natendendo brasileiro.",
-        "langSub": "Chegando do Brasil ou mudando dentro da cidade, você fala com a gente em português da primeira mensagem até a última caixa.",
-        "langCta": "Chamar no WhatsApp",
-        "faqTitle": "Dúvidas frequentes",
-        "endA": "Precisou?", "endB": "É só Shammah.",
-        "endSub": "Mande sua mudança hoje mesmo. A gente cuida do resto.",
-        "call": "Ligar",
-        "fabAria": "Falar com a Shammah Moving no WhatsApp",
-        "footRights": "© 2026 Shammah Moving · Windermere, FL · USDOT 1547896",
+        "heroKicker": "Windermere · Orlando · Flórida Central",
+        "hc1T": "Falamos a sua língua", "hc1D": "Português e inglês, da primeira mensagem à última caixa.",
+        "hc2T": "Desde 2008", "hc2D": "Mudando famílias e empresas na Flórida Central.",
+        "tLocal": "Local", "tInter": "Interestadual", "tIntl": "Internacional",
+        "aboutEyebrow": "Sobre nós",
+        "ab1": "Uma equipe de Windermere para a mudança", "ab2": "do outro lado da cidade", "ab3": "e para a", "ab4": "do outro lado do oceano.",
+        "fEst": "Desde", "b11": "tipos de mudança, de um sofá a uma casa inteira para outro país.",
+        "bLang": "Fale com a gente em português ou inglês, do orçamento à entrega.",
+        "verify": "Consultar no FMCSA",
+        "loadEyebrow": "No dia da mudança", "loadA": "Cada peça", "loadB": "tem seu lugar.",
+        "packedA": "Carregado.", "packedB": "Próxima parada: sua casa nova.",
+        "hudLoading": "Carregando", "hudPacked": "Fechado", "hudRoad": "A caminho",
+        "scrollHint": "Continue rolando",
+        "svcLead": "De um sofá a uma casa inteira para outro país, uma equipe planeja, embala e leva.",
+        "svc_local_r": "Windermere → Orlando", "svc_interstate_r": "Flórida → Geórgia",
+        "svc_intl_r": "MCO → GRU", "svc_packing_r": "Frágil · Este lado para cima",
+        "svc_freight_r": "Coleta → Entrega",
+        "alsoTitle": "Também no caminhão",
+        "prev": "Serviço anterior", "next": "Próximo serviço", "quoteThis": "Orçar esta mudança",
+        "qH3": "Tudo começa com um orçamento.",
+        "st1": "Tipo", "st2": "Detalhes", "st3": "Enviar",
+        "mvInc": "Incluso", "mvFoot": "Respondemos em português ou inglês.",
+        "endC1D": "Mande o que você vai mudar. Fotos ajudam.",
+        "endC2D": "Prefere falar? Ligue pra gente.",
+        "endC3D": "Mudanças de verdade e bastidores.",
+        "open": "Abrir", "igLine": "Mudanças de verdade e bastidores no Instagram.",
+        "menu": "Menu", "menuClose": "Fechar menu",
     },
 }
-
-SVC = {
+# Booking system copy. These keys override the older quote-by-WhatsApp wording from content.py.
+BK = {
     "en": {
-        "local": ("Local moving", "Homes and apartments across Windermere, Orlando and Central Florida.",
-                  ["Safe transport", "Careful handling", "On time", "Stress-free"]),
-        "interstate": ("Interstate moving", "State to state with full planning, from Florida to Atlanta and beyond.",
-                       ["Cross-state moves", "Safe transport", "Full planning & support", "On-time delivery"]),
-        "intl": ("International moving", "From Florida to the world and back, door to door.",
-                 ["Door to door", "Secure packing", "Sea & air freight", "Customs support"]),
-        "packing": ("Professional packing", "Your things boxed, protected and labeled before the truck arrives.",
-                    ["High-quality materials", "Careful handling", "Fragile items protected", "Organized & labeled"]),
-        "freight": ("Deliveries & freight", "Furniture, appliances and loads of every size, local or long distance.",
-                    ["Safe transport", "On-time delivery", "All sizes & types", "Local & long distance"]),
-        "storage": ("Storage", "Short or long term, for the gap between homes or a renovation that ran long.",
-                    ["Short & long term", "Pickup & delivery", "Wrapped before storage"]),
+        "metaTitle": "Shammah Moving | Book Your Move in Windermere & Orlando, FL",
+        "metaDesc": "Book your move online with Shammah Moving. Local, interstate and international moving out of Windermere, Florida, plus packing, freight, storage and pianos. We speak English and Portuguese.",
+        "navQuote": "Book a move", "ctaQuote": "Book a date",
+        "heroSub": "Local, interstate and international moves out of Windermere, Florida. Pick your date online and we hold the crew for you, or message us on WhatsApp.",
+        "qTitle": "Book your move", "qH3": "Pick a date. We hold the crew.",
+        "qSub": "Choose your type of move, pick a day that's open and tell us where you're going. We hold your date right away and confirm it with you.",
+        "st1": "Move type", "st2": "Date", "st3": "Details", "st4": "Booked",
+        "quoteThis": "Book this move",
+        "sendWa": "Ask on WhatsApp first",
+        "sendNote": "Not sure about the details yet? Message us what you're moving and we'll come back with a quote.",
+        "h1t": "Pick your date", "h1d": "Choose the type of move and a day that's open. Add the addresses and a rough size.",
+        "h2t": "We confirm", "h2d": "We review the details, size the crew and the truck, and confirm your date with a written estimate.",
+        "endSub": "Book your date today. We'll take it from there.",
+        "bkDate": "Choose a date", "bkDateHint": "Only days with a free crew can be picked.",
+        "calPrev": "Previous month", "calNext": "Next month",
+        "legOpen": "Open", "legLast": "Last spot", "legFull": "Full", "legClosed": "Closed",
+        "calLoad": "Loading dates…",
+        "calFail": "We couldn't load the calendar. Message us on WhatsApp and we'll book it for you.",
+        "aOpen": "available", "aLast": "last spot", "aFull": "full", "aClosed": "closed",
+        "winH": "Arrival window", "winM": "Morning", "winA": "Afternoon",
+        "winFull": "This is a full-day move. The crew arrives {w}.",
+        "lName": "Full name", "phName": "Your name", "lPhone": "Phone or WhatsApp", "phPhone": "(407) 555-0123",
+        "lEmail": "E-mail (optional)", "phEmail": "you@email.com",
+        "lNotes": "Anything we should know? (optional)", "phNotes": "Stairs, elevator, piano, fragile items…",
+        "sumDate": "Date", "sumArrive": "Arrival", "sumPick": "Pick a date",
+        "bookBtn": "Hold my date", "sending": "Sending…",
+        "vDate": "Pick a date for your move.", "vWin": "Pick morning or afternoon.",
+        "vName": "Please enter your name.", "vPhone": "Check your phone number, with area code.",
+        "okPending": "Date held.", "okConfirmed": "You're booked.",
+        "okSubPending": "We received your request and the crew is held for {d}. We'll confirm with you by WhatsApp or phone.",
+        "okSubConfirmed": "Your move is confirmed for {d}. See you then.",
+        "okCode": "Booking code", "okType": "Move", "okDate": "Date", "okArrive": "Arrival",
+        "okManage": "View or cancel booking", "okWa": "Send details on WhatsApp", "okAgain": "Book another move",
+        "waBook": "Hi Shammah! I just booked a move on your site: {t} on {d}. Code {c}.",
+        "staffLogin": "Team login",
     },
     "pt": {
-        "local": ("Mudança local", "Casas e apartamentos em Windermere, Orlando e na Flórida Central.",
-                  ["Transporte seguro", "Manuseio com cuidado", "No prazo combinado", "Sem estresse"]),
-        "interstate": ("Mudança interestadual", "De um estado para outro com planejamento completo, da Flórida para Atlanta e além.",
-                       ["Mudanças entre estados", "Transporte seguro", "Planejamento e suporte", "Entrega no prazo"]),
-        "intl": ("Mudança internacional", "Da Flórida para o mundo e de volta, porta a porta.",
-                 ["Porta a porta", "Embalagem segura", "Marítimo e aéreo", "Suporte alfandegário"]),
-        "packing": ("Embalagem profissional", "Suas coisas embaladas, protegidas e etiquetadas antes do caminhão chegar.",
-                    ["Materiais de qualidade", "Manuseio com cuidado", "Itens frágeis protegidos", "Tudo etiquetado"]),
-        "freight": ("Fretes e entregas", "Móveis, eletrodomésticos e cargas de todos os tamanhos, local ou longa distância.",
-                    ["Transporte seguro", "Entrega no prazo", "Todos os tamanhos", "Local e longa distância"]),
-        "storage": ("Armazenagem", "Curto ou longo prazo, entre uma casa e outra ou durante uma reforma.",
-                    ["Curto e longo prazo", "Coleta e entrega", "Embalado antes de guardar"]),
+        "metaTitle": "Shammah Moving | Agende sua mudança em Windermere e Orlando, FL",
+        "metaDesc": "Agende sua mudança online com a Shammah Moving. Mudanças locais, interestaduais e internacionais saindo de Windermere, Flórida, além de embalagem, fretes, armazenagem e pianos. Atendimento em português.",
+        "navQuote": "Agendar", "ctaQuote": "Agendar data",
+        "heroSub": "Mudanças locais, interestaduais e internacionais saindo de Windermere, na Flórida. Escolha a data online e a gente reserva a equipe, ou chame no WhatsApp.",
+        "qTitle": "Agende sua mudança", "qH3": "Escolha a data. A gente reserva a equipe.",
+        "qSub": "Escolha o tipo de mudança, um dia livre e conte para onde você vai. Reservamos a data na hora e confirmamos com você.",
+        "st1": "Tipo", "st2": "Data", "st3": "Dados", "st4": "Pronto",
+        "quoteThis": "Agendar esta mudança",
+        "sendWa": "Perguntar no WhatsApp antes",
+        "sendNote": "Ainda não tem todos os detalhes? Mande no WhatsApp o que você vai mudar e a gente volta com o orçamento.",
+        "h1t": "Escolha a data", "h1d": "Escolha o tipo de mudança e um dia livre. Coloque os endereços e um tamanho aproximado.",
+        "h2t": "A gente confirma", "h2d": "Vemos os detalhes, definimos equipe e caminhão e confirmamos sua data com um orçamento por escrito.",
+        "endSub": "Reserve sua data hoje mesmo. A gente cuida do resto.",
+        "bkDate": "Escolha a data", "bkDateHint": "Só dá para escolher dias com equipe livre.",
+        "calPrev": "Mês anterior", "calNext": "Próximo mês",
+        "legOpen": "Livre", "legLast": "Última vaga", "legFull": "Lotado", "legClosed": "Fechado",
+        "calLoad": "Carregando datas…",
+        "calFail": "Não conseguimos carregar o calendário. Chame no WhatsApp que a gente agenda para você.",
+        "aOpen": "disponível", "aLast": "última vaga", "aFull": "lotado", "aClosed": "fechado",
+        "winH": "Janela de chegada", "winM": "Manhã", "winA": "Tarde",
+        "winFull": "Mudança de dia inteiro. A equipe chega {w}.",
+        "lName": "Nome completo", "phName": "Seu nome", "lPhone": "Telefone ou WhatsApp", "phPhone": "(407) 555-0123",
+        "lEmail": "E-mail (opcional)", "phEmail": "voce@email.com",
+        "lNotes": "Algo que a gente deva saber? (opcional)", "phNotes": "Escada, elevador, piano, itens frágeis…",
+        "sumDate": "Data", "sumArrive": "Chegada", "sumPick": "Escolha uma data",
+        "bookBtn": "Reservar minha data", "sending": "Enviando…",
+        "vDate": "Escolha a data da mudança.", "vWin": "Escolha manhã ou tarde.",
+        "vName": "Digite seu nome.", "vPhone": "Confira o telefone, com DDD.",
+        "okPending": "Data reservada.", "okConfirmed": "Tudo certo.",
+        "okSubPending": "Recebemos seu pedido e a equipe está reservada para {d}. Vamos confirmar com você por WhatsApp ou telefone.",
+        "okSubConfirmed": "Sua mudança está confirmada para {d}. Até lá.",
+        "okCode": "Código da reserva", "okType": "Mudança", "okDate": "Data", "okArrive": "Chegada",
+        "okManage": "Ver ou cancelar reserva", "okWa": "Enviar os dados no WhatsApp", "okAgain": "Agendar outra mudança",
+        "waBook": "Olá, Shammah! Acabei de agendar uma mudança no site: {t} em {d}. Código {c}.",
+        "staffLogin": "Área da equipe",
     },
 }
-
-FAQ = {
-    "en": [
-        ("How far ahead should I book?", "As soon as you have a date. Weekends and the end of the month fill up first. Moving sooner? Message us and we'll tell you honestly what's possible."),
-        ("Do you bring boxes and packing supplies?", "Yes. We bring sturdy boxes, bubble wrap and moving blankets so your things are protected on the way."),
-        ("Do you do international moves?", "Yes, in and out of the US, by sea or air, door to door. Tell us the origin, the destination and roughly what's going and we'll walk you through each step, customs included."),
-        ("Do you move pianos?", "Yes, uprights and grands. Tell us the type, the floor and any stairs and we'll plan the right crew and equipment."),
-        ("Can you just load or unload my truck?", "Yes. If you rented a U-Haul, a POD or a container, we can load or unload it for you."),
-        ("What areas do you cover?", "We're based in Windermere and work all over Orlando and Central Florida, plus moves to other states and other countries."),
-    ],
-    "pt": [
-        ("Com quanta antecedência devo agendar?", "Assim que tiver a data. Fim de semana e final de mês lotam primeiro. Precisa antes? Chama a gente que a gente fala com sinceridade o que dá para fazer."),
-        ("Vocês levam caixas e material de embalagem?", "Sim. Levamos caixas resistentes, plástico bolha e mantas para proteger suas coisas no caminho."),
-        ("Fazem mudança internacional?", "Sim, para dentro e para fora dos EUA, por via marítima ou aérea, porta a porta. Conte a origem, o destino e mais ou menos o que vai, e explicamos cada etapa, alfândega incluída."),
-        ("Vocês mudam piano?", "Sim, de armário e de cauda. Diga o tipo, o andar e se tem escada, e planejamos a equipe e o equipamento certos."),
-        ("Vocês podem só carregar ou descarregar meu caminhão?", "Sim. Se você alugou um U-Haul, um POD ou um contêiner, carregamos ou descarregamos para você."),
-        ("Quais regiões vocês atendem?", "Estamos em Windermere e atendemos toda Orlando e a Flórida Central, além de mudanças para outros estados e outros países."),
-    ],
-}
-
-MOVES = {
-    "en": [
-        {"id": "house", "label": "House", "title": "House move", "line": "From a starter home to five bedrooms, we plan the crew, the truck and the timing around your home.", "inc": ["Furniture wrapped in pads and stretch wrap", "Beds and tables taken apart and put back together", "Floors and door frames protected"], "ph": "e.g. 4 bedrooms, 2 floors"},
-        {"id": "apt", "label": "Apartment / condo", "title": "Apartment or condo", "line": "Elevators, stairs, tight hallways and building rules. We work around the building's schedule.", "inc": ["Elevator and loading dock booked ahead", "Right-sized crew for tight spaces", "Quick in and out for reserved slots"], "ph": "e.g. 2 bed, 3rd floor, elevator"},
-        {"id": "office", "label": "Office", "title": "Office or business", "line": "Desks, equipment and files moved on your schedule, after hours if your team can't stop.", "inc": ["Room-by-room labeled plan", "Workstations taken down and set up", "Evenings and weekends available"], "ph": "e.g. 15 workstations"},
-        {"id": "interstate", "label": "Interstate", "title": "Interstate move", "line": "Leaving Florida or coming in? One crew and one plan, door to door.", "inc": ["Door to door, state to state", "Inventory so nothing goes missing", "Written estimate before we load"], "ph": "e.g. Orlando to Atlanta, 3 bedrooms"},
-        {"id": "intl", "label": "International", "title": "International move", "line": "From Florida to the world, or the world to Florida. We plan the route and walk you through every step.", "inc": ["Door to door, in and out of the US", "Sea and air freight", "Customs support"], "ph": "e.g. Orlando to São Paulo, 2-bed apartment"},
-        {"id": "freight", "label": "Freight & delivery", "title": "Freight and delivery", "line": "A new sofa, a store pickup or a full load across the state. Any size, on time.", "inc": ["Furniture, appliances and boxes", "All sizes and types of load", "Local and long distance"], "ph": "e.g. sofa and fridge from Kissimmee"},
-        {"id": "packing", "label": "Packing", "title": "Packing", "line": "Full or partial. We pack a whole kitchen in an afternoon so you don't spend a week on it.", "inc": ["Boxes, bubble wrap and paper included", "Fragile items packed by hand", "Every box labeled by room"], "ph": "e.g. kitchen and living room only"},
-        {"id": "piano", "label": "Piano", "title": "Piano move", "line": "Uprights and grands need technique, the right equipment and people who've done it many times.", "inc": ["Padded, strapped and secured", "Stairs and tight turns planned ahead", "Upright, baby grand and grand"], "ph": "e.g. upright, ground floor, no stairs"},
-        {"id": "storage", "label": "Storage", "title": "Storage", "line": "Between homes, renovating or short on space? We keep your things safe until you need them.", "inc": ["Short and long term", "Pickup and delivery", "Everything wrapped before storage"], "ph": "e.g. one bedroom of furniture, 2 months"},
-        {"id": "labor", "label": "Load / unload", "title": "Loading and unloading", "line": "Rented a U-Haul, a POD or a container? We bring the muscle and load it right.", "inc": ["Truck, POD and container loading", "Weight balanced so nothing shifts", "Hourly crews"], "ph": "e.g. 26 ft truck, 2-bed home"},
-        {"id": "assembly", "label": "Assembly", "title": "Furniture assembly", "line": "New furniture, a move, or the wardrobe that never got finished. We build it, level it and take the boxes away.", "inc": ["Beds, wardrobes, desks and shelving", "Wall anchoring when needed", "Packaging taken away"], "ph": "e.g. 1 bed frame, 2 dressers"},
-    ],
-    "pt": [
-        {"id": "house", "label": "Casa", "title": "Mudança de casa", "line": "Da primeira casa a uma de cinco quartos, planejamos equipe, caminhão e horário em volta da sua casa.", "inc": ["Móveis envolvidos em manta e filme", "Camas e mesas desmontadas e montadas", "Piso e batentes protegidos"], "ph": "ex.: 4 quartos, 2 andares"},
-        {"id": "apt", "label": "Apartamento", "title": "Apartamento ou condomínio", "line": "Elevador, escada, corredor estreito e regras do prédio. A gente se encaixa no horário do condomínio.", "inc": ["Elevador e doca reservados antes", "Equipe do tamanho certo para espaço apertado", "Rapidez em horário reservado"], "ph": "ex.: 2 quartos, 3º andar, elevador"},
-        {"id": "office", "label": "Escritório", "title": "Escritório ou empresa", "line": "Mesas, equipamentos e arquivos no seu horário, fora do expediente se a equipe não pode parar.", "inc": ["Plano etiquetado sala por sala", "Estações desmontadas e montadas", "Noites e fins de semana"], "ph": "ex.: 15 estações de trabalho"},
-        {"id": "interstate", "label": "Interestadual", "title": "Mudança interestadual", "line": "Saindo da Flórida ou chegando? Uma equipe e um plano, de porta a porta.", "inc": ["Porta a porta, entre estados", "Inventário para nada se perder", "Orçamento por escrito antes de carregar"], "ph": "ex.: Orlando para Atlanta, 3 quartos"},
-        {"id": "intl", "label": "Internacional", "title": "Mudança internacional", "line": "Da Flórida para o mundo, ou do mundo para a Flórida. Planejamos a rota e acompanhamos cada etapa.", "inc": ["Porta a porta, para dentro e fora dos EUA", "Transporte marítimo e aéreo", "Suporte alfandegário"], "ph": "ex.: Orlando para São Paulo, apto de 2 quartos"},
-        {"id": "freight", "label": "Frete e entrega", "title": "Frete e entrega", "line": "Um sofá novo, uma retirada na loja ou uma carga inteira pelo estado. Qualquer tamanho, no prazo.", "inc": ["Móveis, eletrodomésticos e caixas", "Cargas de todos os tamanhos e tipos", "Local e longa distância"], "ph": "ex.: sofá e geladeira de Kissimmee"},
-        {"id": "packing", "label": "Embalagem", "title": "Embalagem", "line": "Completa ou parcial. Embalamos uma cozinha inteira em uma tarde para você não perder a semana nisso.", "inc": ["Caixas, plástico bolha e papel inclusos", "Itens frágeis embalados à mão", "Cada caixa etiquetada por cômodo"], "ph": "ex.: só cozinha e sala"},
-        {"id": "piano", "label": "Piano", "title": "Mudança de piano", "line": "Piano de armário ou de cauda pede técnica, equipamento certo e gente que já fez isso muitas vezes.", "inc": ["Protegido, amarrado e travado", "Escadas e curvas planejadas antes", "Armário, meia cauda e cauda"], "ph": "ex.: de armário, térreo, sem escada"},
-        {"id": "storage", "label": "Armazenagem", "title": "Armazenagem", "line": "Entre uma casa e outra, em reforma ou sem espaço? Guardamos suas coisas com segurança até você precisar.", "inc": ["Curto e longo prazo", "Coleta e entrega", "Tudo embalado antes de guardar"], "ph": "ex.: móveis de 1 quarto, 2 meses"},
-        {"id": "labor", "label": "Carga e descarga", "title": "Carga e descarga", "line": "Alugou U-Haul, POD ou contêiner? A gente leva a força e carrega do jeito certo.", "inc": ["Carga de caminhão, POD e contêiner", "Peso distribuído para nada se mexer", "Equipe por hora"], "ph": "ex.: caminhão de 26 pés, casa de 2 quartos"},
-        {"id": "assembly", "label": "Montagem", "title": "Montagem de móveis", "line": "Móvel novo, mudança ou aquele guarda-roupa que nunca ficou pronto. Montamos, nivelamos e levamos as caixas.", "inc": ["Camas, guarda-roupas, mesas e estantes", "Fixação na parede quando precisa", "Embalagens retiradas"], "ph": "ex.: 1 cama, 2 cômodas"},
-    ],
-}
-
-# Flatten services and FAQ into the dictionary so one [data-i18n] pass swaps everything.
 for lang in ("en", "pt"):
-    for key, (title, desc, tags) in SVC[lang].items():
-        T[lang][f"svc_{key}_t"] = title
-        T[lang][f"svc_{key}_d"] = desc
-        for i, tag in enumerate(tags):
-            T[lang][f"svc_{key}_g{i}"] = tag
-    for i, (q, a) in enumerate(FAQ[lang]):
-        T[lang][f"faq{i}q"] = q
-        T[lang][f"faq{i}a"] = a
-
+    T[lang].update(ADD[lang])
+    T[lang].update(BK[lang])
+    for m in MOVES[lang]:
+        if m["id"] in ("piano", "assembly", "labor"):
+            T[lang][f"also_{m['id']}_t"] = m["title"]
+            T[lang][f"also_{m['id']}_d"] = m["line"]
 assert set(T["en"]) == set(T["pt"]), set(T["en"]) ^ set(T["pt"])
-
 EN = T["en"]
 
 
@@ -208,29 +169,56 @@ def e(key):
     return html.escape(EN[key], quote=True)
 
 
-ICON_WA = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 9.5c.3 2.4 2.7 4.8 5.2 5.3l1.2-1.2 1.8.8c-.2 1.3-1.2 2-2.4 1.9-3.4-.3-6.4-3.3-6.7-6.7-.1-1.2.6-2.2 1.9-2.4l.8 1.8z"/></svg>'
-ICON_IG = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none"/></svg>'
-ICON_PIN = '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>'
-CHECK = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="#ff6b1a"/><path d="M6 10.2l2.6 2.6L14 7.4" fill="none" stroke="#0b0b0c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+def fill(tpl):
+    return re.sub(r"\{\{(\w+)\}\}", lambda m: e(m.group(1)), tpl)
 
 
-def service_card(key, img, w=1100, h=728):
-    tags = "".join(f'<li data-i18n="svc_{key}_g{i}">{e(f"svc_{key}_g{i}")}</li>' for i in range(len(SVC["en"][key][2])))
-    return f'''<article class="svc reveal">
-<img src="/assets/{img}" alt="" width="{w}" height="{h}" loading="lazy" decoding="async">
-<div class="svc-body">
-<h3 data-i18n="svc_{key}_t">{e(f"svc_{key}_t")}</h3>
-<p data-i18n="svc_{key}_d">{e(f"svc_{key}_d")}</p>
-<ul class="tags">{tags}</ul>
-</div>
-</article>'''
+CHECK = '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="#ff6b1a"/><path d="M6 10.2l2.6 2.6L14 7.4" fill="none" stroke="#121214" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+ICON_WA = '<svg class="wa" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 9.5c.3 2.4 2.7 4.8 5.2 5.3l1.2-1.2 1.8.8c-.2 1.3-1.2 2-2.4 1.9-3.4-.3-6.4-3.3-6.7-6.7-.1-1.2.6-2.2 1.9-2.4l.8 1.8z"/></svg>'
+ICON_IG = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" stroke="none"/></svg>'
+ICON_PHONE = '<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>'
+ICON_TRUCK = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h11v10H2zM13 9h4l3 3.5V16h-7z"/><circle cx="6" cy="17.5" r="1.8"/><circle cx="16.5" cy="17.5" r="1.8"/></svg>'
+ICON_PLANE = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 13.5L3 11l1.5-1.5 8 1 4.5-4.5a2 2 0 0 1 3 3L15.5 13.5l1 8L15 23l-2.5-7.5L9 19v2.5L7.5 23l-1-3.5L3 18.5 4.5 17H7l3.5-3.5z"/></svg>'
+ARR = '<svg class="arr" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8h11M9 3.5L13.5 8 9 12.5"/></svg>'
+ARR_UP = '<svg class="arr" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11.5l7-7M5.5 4.5h6v6"/></svg>'
+ARR_L = '<svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8h-11M7 3.5L2.5 8 7 12.5"/></svg>'
+ARR_R = '<svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8h11M9 3.5L13.5 8 9 12.5"/></svg>'
+
+# Default length of each type of move; the database (move_types.span) overrides these at runtime.
+DEFAULT_SPAN = {"house": "full", "apt": "full", "office": "full", "interstate": "full", "intl": "full",
+                "freight": "half", "packing": "half", "piano": "half", "storage": "half", "labor": "half", "assembly": "half"}
+
+SVC_ORDER = [("local", "house"), ("interstate", "interstate"), ("intl", "intl"), ("packing", "packing"), ("freight", "freight")]
+
+
+def svc_cards():
+    out = []
+    for k, mv in SVC_ORDER:
+        out.append(
+            f'<article class="card"><img src="assets/{k}.webp" width="1100" height="728" alt="" loading="lazy" decoding="async">'
+            f'<span class="pill-g" data-i18n="svc_{k}_r">{e(f"svc_{k}_r")}</span>'
+            f'<div class="card-in"><h3 data-i18n="svc_{k}_t">{e(f"svc_{k}_t")}</h3><p data-i18n="svc_{k}_d">{e(f"svc_{k}_d")}</p></div>'
+            f'<a class="card-go" href="#quote" data-pick="{mv}" aria-label="{e("quoteThis")}" data-i18n-aria="quoteThis">{ARR_UP}</a></article>'
+        )
+    return "\n".join(out)
+
+
+def also():
+    rows = [("svc_storage_t", "svc_storage_d")] + [(f"also_{k}_t", f"also_{k}_d") for k in ("piano", "assembly", "labor")]
+    return "\n".join(f'<div class="also-i"><h4 data-i18n="{t}">{e(t)}</h4><p data-i18n="{d}">{e(d)}</p></div>' for t, d in rows)
+
+
+def marquee():
+    keys = ["svc_local_t", "svc_interstate_t", "svc_intl_t", "svc_packing_t", "svc_freight_t", "svc_storage_t", "also_piano_t", "also_assembly_t", "also_labor_t"]
+    one = "".join(f'<li><span data-i18n="{k}">{e(k)}</span></li>' for k in keys)
+    return f'<ul class="mq-list">{one}</ul><ul class="mq-list" aria-hidden="true">{one}</ul>'
 
 
 def move_buttons():
-    out = []
-    for i, m in enumerate(MOVES["en"]):
-        out.append(f'<button type="button" class="chip" data-move="{m["id"]}" aria-pressed="{"true" if i == 0 else "false"}">{html.escape(m["label"])}</button>')
-    return "\n".join(out)
+    return "\n".join(
+        f'<button type="button" class="chip" data-move="{m["id"]}" aria-pressed="{"true" if i == 0 else "false"}">{html.escape(m["label"])}</button>'
+        for i, m in enumerate(MOVES["en"])
+    )
 
 
 first = MOVES["en"][0]
@@ -239,32 +227,1126 @@ faq_html = "\n".join(
     f'<details class="faq-item"><summary data-i18n="faq{i}q">{e(f"faq{i}q")}</summary><p data-i18n="faq{i}a">{e(f"faq{i}a")}</p></details>'
     for i in range(len(FAQ["en"]))
 )
-storage_tags = "".join(f'<li data-i18n="svc_storage_g{i}">{e(f"svc_storage_g{i}")}</li>' for i in range(3))
+mini_moves = "".join(f'<li>{html.escape(m["label"])}</li>' for m in MOVES["en"][:6])
 
-schema = {
-    "@context": "https://schema.org",
-    "@type": "MovingCompany",
-    "name": "Shammah Moving",
-    "url": SITE_URL,
-    "image": SITE_URL + "/assets/og-image.jpg",
-    "logo": SITE_URL + "/assets/logo.png",
-    "telephone": PHONE,
-    "email": EMAIL,
-    "foundingDate": "2008",
-    "address": {"@type": "PostalAddress", "addressLocality": "Windermere", "addressRegion": "FL", "postalCode": "34786", "addressCountry": "US"},
-    "areaServed": ["Windermere, FL", "Orlando, FL", "Central Florida"],
-    "knowsLanguage": ["en", "pt-BR"],
-    "sameAs": [IG],
+CSS = r'''
+/* Layout: light page of framed, rounded "windows" (photo hero, dark truck stage, photo CTA) with bento cards between. One accent: brand orange. */
+:root{
+  --bg:#ffffff;--surface:#f3f3f1;--surface-2:#e9e9e5;--ink:#121214;--mute:#66666d;--line:#e3e3df;
+  --orange:#ff6b1a;--orange-hi:#ff8540;--orange-ink:#bf4c0b;--night:#0d0d0f;--night-2:#18181b;
+  --sans:Geist,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --disp:"Barlow Condensed","Arial Narrow",Impact,sans-serif;
+  --wrap:1280px;--r-frame:30px;--r-card:24px;--r-ctl:14px;--ease:cubic-bezier(.2,.7,.2,1);
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:96px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--bg)}
+img{max-width:100%;height:auto;display:block}
+p{text-wrap:pretty}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--orange);outline-offset:3px;border-radius:8px}
+.wrap{width:100%;max-width:var(--wrap);margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.edge{padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+.skip{position:absolute;left:-9999px;top:8px;z-index:60;background:#fff;color:#000;padding:10px 16px;border-radius:8px}
+.skip:focus{left:12px}
+h1,h2,h3,h4{text-wrap:balance}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;margin:0 0 18px;font:500 12px/1.2 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--orange)}
+.h2{margin:0;font-weight:500;font-size:clamp(40px,5vw,72px);line-height:1;letter-spacing:-.045em}
+.h2 .m{color:#a3a3a8}
+.lede{font-size:clamp(17px,1.4vw,19px);line-height:1.55;max-width:34em;margin:0;color:var(--mute)}
+.mono{font-family:var(--mono)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:12px;min-height:52px;padding:0 8px 0 22px;border-radius:999px;font-size:15px;font-weight:600;text-decoration:none;border:1px solid transparent;cursor:pointer;white-space:nowrap;transition:transform .2s var(--ease),background-color .25s,border-color .25s,color .25s,box-shadow .3s}
+.btn:active{transform:scale(.97)}
+.btn .dot{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;transition:transform .4s var(--ease)}
+.btn:hover .dot{transform:rotate(-45deg)}
+.btn .wa{transition:transform .35s var(--ease)}
+.btn:hover .wa{transform:rotate(-10deg)}
+.btn-o{background:var(--orange);color:var(--ink)}
+.btn-o .dot{background:var(--ink);color:#fff}
+.btn-o:hover{background:var(--orange-hi);box-shadow:0 12px 30px -10px rgba(255,107,26,.6)}
+.btn-ink{background:var(--ink);color:#fff}
+.btn-ink .dot{background:var(--orange);color:var(--ink)}
+.btn-ink:hover{background:#2a2a2e}
+.btn-glass{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.28);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:0 22px}
+.btn-glass:hover{background:rgba(255,255,255,.24)}
+.btn-line{border-color:var(--line);color:var(--ink);padding:0 22px;background:#fff}
+.btn-line:hover{border-color:var(--ink)}
+.ctas{display:flex;flex-wrap:wrap;gap:10px}
+
+/* nav: floating pill */
+.nav{position:fixed;z-index:30;top:calc(18px + env(safe-area-inset-top,0px));left:0;right:0;pointer-events:none}
+.nav-in{pointer-events:auto;max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 7px 7px 16px;border-radius:999px;background:rgba(255,255,255,.86);-webkit-backdrop-filter:saturate(180%) blur(18px);backdrop-filter:saturate(180%) blur(18px);box-shadow:0 1px 0 rgba(0,0,0,.04),0 10px 30px -14px rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.7)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand img{width:34px;height:34px;border-radius:50%}
+.brand b{font-family:var(--disp);font-style:italic;font-weight:900;font-size:21px;letter-spacing:.03em;line-height:1}
+.links{display:flex;gap:2px}
+.links a{padding:9px 14px;border-radius:999px;font:500 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;text-decoration:none;color:#3c3c41;transition:background-color .2s,color .2s}
+.links a:hover{background:var(--surface);color:var(--ink)}
+.nav-r{display:flex;align-items:center;gap:8px}
+.lang{display:flex;padding:3px;border-radius:999px;background:var(--surface)}
+.lang button{min-height:30px;min-width:38px;padding:0 10px;border:0;border-radius:999px;background:transparent;color:#55555b;font:600 12px var(--mono);letter-spacing:.06em;cursor:pointer;transition:background-color .2s,color .2s}
+.lang button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.nav .btn{min-height:42px;font-size:14px;padding-left:18px;padding-right:5px}
+.nav .btn .dot{width:32px;height:32px}
+.menu-btn{display:none;width:42px;height:42px;border:0;border-radius:50%;background:var(--ink);cursor:pointer;position:relative}
+.menu-btn span{position:absolute;left:13px;right:13px;height:1.6px;background:#fff;border-radius:2px;transition:transform .35s var(--ease),top .35s var(--ease)}
+.menu-btn span:first-child{top:17px}.menu-btn span:last-child{top:23px}
+.menu-btn[aria-expanded="true"] span:first-child{top:20px;transform:rotate(45deg)}
+.menu-btn[aria-expanded="true"] span:last-child{top:20px;transform:rotate(-45deg)}
+.menu{position:fixed;z-index:29;inset:0;background:rgba(255,255,255,.97);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);padding-block:calc(100px + env(safe-area-inset-top,0px)) calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;justify-content:space-between;opacity:0;transform:translateY(-10px);transition:opacity .3s ease,transform .4s var(--ease)}
+.menu[hidden]{display:none}
+.menu.open{opacity:1;transform:none}
+.menu nav{display:flex;flex-direction:column}
+.menu nav a{font-weight:500;font-size:clamp(38px,11vw,56px);letter-spacing:-.04em;line-height:1.1;text-decoration:none;padding-block:10px;border-bottom:1px solid var(--line)}
+.menu .btn{align-self:stretch;justify-content:space-between}
+@media (max-width:980px){.links{display:none}.menu-btn{display:block}}
+@media (max-width:520px){.nav .btn-o{display:none}.brand b{font-size:19px}}
+
+/* hero */
+.hero{padding-top:12px}
+.frame{position:relative;border-radius:var(--r-frame);overflow:hidden;isolation:isolate}
+.hero .frame{min-height:clamp(640px,92svh,900px);display:flex;flex-direction:column;justify-content:flex-end;background:#1b1b1d;color:#fff}
+.hero .frame>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 52%;z-index:-2;transform:scale(1.04);animation:settle 2.4s var(--ease) forwards}
+@keyframes settle{to{transform:scale(1)}}
+.hero .frame::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(13,13,15,.72) 0%,rgba(13,13,15,.35) 42%,rgba(13,13,15,0) 70%),linear-gradient(180deg,rgba(13,13,15,.5) 0%,rgba(13,13,15,0) 26%,rgba(13,13,15,.1) 48%,rgba(13,13,15,.86) 100%)}
+.hero-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:28px 56px;align-items:end;padding:clamp(24px,4vw,56px)}
+.hero .eyebrow{color:rgba(255,255,255,.8)}
+.hero h1{margin:0;font-weight:500;font-size:clamp(52px,7.4vw,118px);line-height:.95;letter-spacing:-.055em}
+.hero h1 span{display:block}
+.hero h1 .o{color:var(--orange)}
+.hero .lede{color:rgba(255,255,255,.82);margin-top:22px;max-width:30em}
+.hero .ctas{margin-top:28px}
+.hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px;padding:0;list-style:none}
+.hero-tags li{padding:7px 13px;border-radius:999px;background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.floats{display:flex;flex-direction:column;gap:12px;align-items:flex-end}
+.fcard{width:min(320px,100%);padding:18px 20px;border-radius:20px;background:rgba(255,255,255,.94);color:var(--ink);box-shadow:0 24px 50px -24px rgba(0,0,0,.55);display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;align-items:center;animation:bob 6s ease-in-out infinite}
+.fcard:nth-child(2){animation-delay:-3s;margin-right:36px}
+.fcard .ic{grid-row:span 2;display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--orange);color:var(--ink);font:600 13px var(--mono)}
+.fcard .ic.dk{background:var(--ink);color:var(--orange)}
+.fcard b{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.fcard span{font-size:14px;color:var(--mute);line-height:1.4}
+@keyframes bob{50%{transform:translateY(-8px)}}
+.hero-pin{position:absolute;top:calc(92px + env(safe-area-inset-top,0px));left:clamp(24px,4vw,56px);padding:8px 13px;border-radius:999px;background:rgba(13,13,15,.5);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#fff}
+.hero-social{position:absolute;top:calc(92px + env(safe-area-inset-top,0px));right:clamp(24px,4vw,56px);display:flex;gap:16px;font-size:13px}
+.hero-social a{text-decoration:none;color:rgba(255,255,255,.88);display:inline-flex;align-items:center;gap:4px}
+.hero-social a:hover{color:#fff}
+@media (max-width:900px){
+  .hero-body{grid-template-columns:minmax(0,1fr)}
+  .floats{flex-direction:row;align-items:stretch;overflow-x:auto;scrollbar-width:none;margin-inline:calc(-1 * clamp(24px,4vw,56px));padding-inline:clamp(24px,4vw,56px);padding-block:4px 10px}
+  .floats::-webkit-scrollbar{display:none}
+  .fcard{flex:0 0 min(290px,78%);animation:none}
+  .fcard:nth-child(2){margin-right:0}
+  .hero-social,.hero-pin{display:none}
 }
 
-page = f'''<!doctype html>
+/* marquee */
+.mq{overflow:hidden;padding-block:26px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.mq-track{display:flex;width:max-content;animation:slide 48s linear infinite}
+.mq:hover .mq-track{animation-play-state:paused}
+.mq-list{display:flex;margin:0;padding:0;list-style:none}
+.mq-list li{display:flex;align-items:center;gap:28px;padding-right:28px;font-weight:500;font-size:clamp(18px,1.8vw,24px);letter-spacing:-.02em;color:#8d8d93;white-space:nowrap}
+.mq-list li::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--orange)}
+@keyframes slide{to{transform:translateX(-50%)}}
+
+/* about + bento */
+.about{padding-block:clamp(80px,10vw,140px) clamp(40px,6vw,80px);text-align:center}
+.statement{margin:0 auto;max-width:17em;font-weight:500;font-size:clamp(32px,4.4vw,62px);line-height:1.12;letter-spacing:-.045em}
+.statement .m{color:#a3a3a8}
+.ipill{display:inline-grid;place-items:center;vertical-align:-.12em;width:1.5em;height:.95em;border-radius:999px;background:var(--orange);color:var(--ink);margin-inline:.08em}
+.ipill.dk{background:var(--ink);color:var(--orange)}
+.ipill svg{width:.55em;height:.55em}
+.bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:minmax(220px,auto);gap:14px;padding-bottom:clamp(80px,10vw,140px)}
+.b{position:relative;border-radius:var(--r-card);padding:26px;overflow:hidden;min-width:0;display:flex;flex-direction:column;gap:12px;background:var(--surface)}
+.b .big{font-weight:500;font-size:clamp(64px,6.4vw,104px);line-height:.9;letter-spacing:-.06em}
+.b p{margin:0;font-size:15px;color:var(--mute)}
+.b .lbl{font:500 12px/1.2 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.b-photo{grid-column:span 4;grid-row:span 2;padding:14px;justify-content:space-between;background:#222}
+.b-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.4s var(--ease)}
+.b-photo:hover img{transform:scale(1.05)}
+.b-photo .tag{position:relative;align-self:flex-start;padding:8px 12px;border-radius:999px;background:rgba(13,13,15,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff;font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.b-photo .inner{position:relative;background:#fff;border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:8px}
+.b-moves{grid-column:span 4;grid-row:span 2;justify-content:space-between}
+.mini{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.mini li{padding:7px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:13px}
+.b-lang{grid-column:span 4;background:var(--orange);justify-content:space-between}
+.b-lang .lbl,.b-lang p{color:#3b1806}
+.b-lang .big{font-size:clamp(52px,5vw,80px)}
+.b-dot{grid-column:span 4;background:var(--ink);color:#fff;flex-direction:row;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.b-dot .lbl{color:#9a9aa1}
+.b-dot .num{font:500 clamp(30px,3vw,44px)/1 var(--mono);letter-spacing:-.03em}
+.b-dot a{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:#fff;text-underline-offset:3px}
+.b-dot a .arr{transition:transform .35s var(--ease)}
+.b-dot a:hover .arr{transform:translateX(4px)}
+@media (max-width:980px){.b-photo,.b-moves{grid-column:span 6}.b-lang,.b-dot{grid-column:span 6}}
+@media (max-width:640px){.bento{grid-auto-rows:auto}.b-photo,.b-moves,.b-lang,.b-dot{grid-column:span 12;grid-row:auto}.b-photo{min-height:440px}.b-moves{gap:28px}}
+
+/* load: dark stage inside a frame */
+.load{position:relative;height:330vh}
+.load-stage{position:sticky;top:0;height:100vh;height:100svh;padding-block:calc(84px + env(safe-area-inset-top,0px)) 12px}
+.load .frame{height:100%;background:radial-gradient(120% 80% at 55% 100%,#2a1708 0%,var(--night) 60%);color:#f4f4f2;display:flex;flex-direction:column}
+.load-head{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:end;padding:clamp(22px,3.4vw,44px) clamp(22px,3.4vw,44px) 0}
+.load-head .eyebrow{color:#9a9aa1}
+.load-copy{transition:none}
+.load-copy h2{margin:0;font-weight:500;font-size:clamp(36px,4.6vw,68px);line-height:1;letter-spacing:-.045em}
+.load-copy h2 span{display:block}
+.load-copy h2 .o{color:var(--orange)}
+.load-copy.alt{position:absolute;left:clamp(22px,3.4vw,44px);right:clamp(22px,3.4vw,44px);bottom:0;opacity:0}
+.rig-wrap{flex:1;min-height:0;display:flex;align-items:flex-end;justify-content:center;padding:16px 0 0}
+.rig{display:block;width:100%;height:100%;max-height:560px;overflow:visible}
+.t-disp{font-family:var(--disp);font-style:italic;font-weight:900}
+.t-wide{font-family:var(--mono);font-weight:500;letter-spacing:12px}
+.t-mono{font-family:var(--mono);font-weight:500}
+.marker{animation:blink 1.6s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.hud{display:flex;align-items:center;gap:18px;padding:14px clamp(22px,3.4vw,44px) 22px;font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#9a9aa1;font-variant-numeric:tabular-nums}
+.hud b{color:#fff;font-weight:500;min-width:7ch}
+.hud-bar{flex:1;height:2px;background:#2a2a2e;position:relative;overflow:hidden;border-radius:2px}
+.hud-bar i{position:absolute;inset:0;background:var(--orange);transform-origin:left;transform:scaleX(0)}
+@media (max-width:760px){
+  .load{height:280vh}
+  .load-head{grid-template-columns:minmax(0,1fr)}
+  .rig-wrap{align-items:center}
+  .rig{height:auto;max-height:none}
+}
+
+/* services */
+.svc{padding-block:clamp(90px,11vw,150px) clamp(60px,8vw,110px)}
+.svc-grid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:40px}
+.svc-side{display:flex;flex-direction:column;justify-content:space-between;gap:28px;min-width:0}
+.svc-side .h2{font-size:clamp(34px,3.4vw,50px)}
+.svc-side .lede{margin-top:20px}
+.arrows{display:flex;gap:8px}
+.arrows button{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:#fff;display:grid;place-items:center;cursor:pointer;transition:background-color .2s,border-color .2s,transform .2s var(--ease)}
+.arrows button:hover{border-color:var(--ink)}
+.arrows button:active{transform:scale(.94)}
+.arrows button:disabled{opacity:.35;cursor:default}
+.rail{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:4px;min-width:0;scroll-behavior:smooth}
+.rail::-webkit-scrollbar{display:none}
+.card{position:relative;flex:0 0 min(360px,80%);aspect-ratio:4/5;border-radius:var(--r-card);overflow:hidden;scroll-snap-align:start;color:#fff;background:#222;display:flex;flex-direction:column;justify-content:flex-end}
+.card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+.card:hover img{transform:scale(1.05)}
+.card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,.78))}
+.pill-g{position:absolute;z-index:2;top:16px;left:16px;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.25);font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.card-in{position:relative;z-index:2;padding:22px 74px 22px 22px}
+.card h3{margin:0;font-weight:500;font-size:26px;line-height:1.05;letter-spacing:-.03em}
+.card p{margin:8px 0 0;font-size:14px;color:rgba(255,255,255,.8)}
+.card-go{position:absolute;z-index:3;right:16px;bottom:18px;width:44px;height:44px;border-radius:50%;background:#fff;color:var(--ink);display:grid;place-items:center;transition:transform .4s var(--ease),background-color .2s}
+.card-go:hover{background:var(--orange);transform:rotate(45deg)}
+.also{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:20px 28px;margin-top:56px;padding-top:28px;border-top:1px solid var(--line);align-items:start}
+.also h3{margin:0;font:500 12px/1.4 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);min-width:120px}
+.also-i h4{margin:0;font-weight:600;font-size:17px;letter-spacing:-.01em}
+.also-i p{margin:6px 0 0;font-size:14px;color:var(--mute)}
+@media (max-width:980px){.svc-grid{grid-template-columns:minmax(0,1fr)}.svc-side{flex-direction:row;align-items:flex-end;flex-wrap:wrap}.also{grid-template-columns:repeat(2,minmax(0,1fr))}.also h3{grid-column:1/-1}}
+@media (max-width:520px){.also{grid-template-columns:minmax(0,1fr)}.rail{margin-inline:calc(-1 * max(20px,env(safe-area-inset-left,0px)));padding-inline:max(20px,env(safe-area-inset-left,0px));scroll-padding-inline:max(20px,env(safe-area-inset-left,0px))}}
+
+/* quote */
+.quote-sec{padding-bottom:clamp(80px,10vw,140px)}
+.panel{border-radius:var(--r-frame);background:var(--surface);padding:clamp(24px,4.4vw,64px)}
+.q-head{text-align:center;max-width:760px;margin:0 auto}
+.q-head .lede{margin:18px auto 0}
+.qsteps{list-style:none;display:flex;justify-content:center;flex-wrap:wrap;gap:8px 28px;margin:36px 0 0;padding:0;font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.qsteps li{display:flex;align-items:center;gap:10px;transition:color .3s}
+.qsteps li b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;border:1px solid #cfcfca;font-weight:500;transition:background-color .3s,border-color .3s,color .3s}
+.qsteps li.done{color:var(--ink)}
+.qsteps li.done b{background:var(--orange);border-color:var(--orange);color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:22px}
+.chip{min-height:44px;padding:0 18px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:15px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background-color .2s,border-color .2s,color .2s,transform .2s var(--ease)}
+.chip:hover{border-color:var(--ink)}
+.chip:active{transform:scale(.96)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+@media (max-width:760px){
+  .chips{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:calc(-1 * clamp(24px,4.4vw,64px));padding:2px clamp(24px,4.4vw,64px) 6px}
+  .chips::-webkit-scrollbar{display:none}
+}
+.quote{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:14px;margin-top:28px}
+@media (max-width:860px){.quote{grid-template-columns:minmax(0,1fr)}}
+.mv{border-radius:var(--r-card);background:var(--ink);color:#f4f4f2;padding:clamp(26px,3vw,40px);display:flex;flex-direction:column;gap:16px;min-width:0}
+.mv h3{margin:0;font-weight:500;font-size:clamp(30px,3vw,42px);line-height:1.02;letter-spacing:-.04em}
+.mv p{margin:0;color:#bdbdc2}
+.mv .lbl{margin-top:10px;font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#8f8f96}
+.mv ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.mv li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+.mv li svg{flex:none;margin-top:2px}
+.mv .mv-foot{margin-top:auto;padding-top:18px;border-top:1px solid #2a2a2e;font:500 12px/1.4 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#8f8f96}
+.mv.swap #mvTitle,.mv.swap #mvLine,.mv.swap #mvInc{animation:swap .45s var(--ease)}
+@keyframes swap{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.form{border-radius:var(--r-card);background:#fff;padding:clamp(26px,3vw,40px);display:flex;flex-direction:column;gap:18px;min-width:0}
+.form .lbl{margin:0;font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:14px}
+.form label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:600;color:#3d3d42}
+.form input{min-height:54px;padding:0 16px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--surface);color:var(--ink);font:400 16px var(--sans);width:100%;transition:border-color .2s,background-color .2s,box-shadow .2s}
+.form input:hover{border-color:#cfcfca}
+.form input:focus{border-color:var(--ink);background:#fff;outline:none;box-shadow:0 0 0 4px rgba(255,107,26,.18)}
+.form input::placeholder{color:#8e8e93}
+.form .btn{justify-content:space-between;min-height:60px;margin-top:4px}
+.note{margin:0;font-size:13px;color:var(--mute)}
+
+/* booking: calendar, arrival window, summary, confirmation */
+[hidden]{display:none!important}
+.quote{align-items:start}
+@media (min-width:861px){.mv{position:sticky;top:96px}}
+.mv .sum{margin:auto 0 0;padding-top:18px;border-top:1px solid #2a2a2e;display:grid;gap:12px}
+.mv .sum div{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+.mv .sum dt{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#8f8f96}
+.mv .sum dd{margin:0;font-weight:500;text-align:right;color:#8f8f96}
+.mv .sum dd.set{color:#fff}
+.mv .sum + .mv-foot{margin-top:18px}
+.form .blk{display:flex;flex-direction:column;gap:16px}
+.form .blk + .blk{padding-top:24px;border-top:1px solid var(--line)}
+.form textarea{padding:14px 16px;border-radius:var(--r-ctl);border:1px solid var(--line);background:var(--surface);color:var(--ink);font:400 16px/1.45 var(--sans);width:100%;resize:vertical;min-height:84px;transition:border-color .2s,background-color .2s,box-shadow .2s}
+.form textarea:hover{border-color:#cfcfca}
+.form textarea:focus{border-color:var(--ink);background:#fff;outline:none;box-shadow:0 0 0 4px rgba(255,107,26,.18)}
+.form textarea::placeholder{color:#8e8e93}
+.hp{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+.verr{margin:0;padding:12px 16px;border-radius:var(--r-ctl);background:#fff1ec;color:#9a2f0a;border:1px solid #ffd2c0;font-size:14px;font-weight:500}
+.btn[disabled]{opacity:.65;cursor:progress}
+.form .btn.btn-line.wide{justify-content:center;gap:10px;min-height:54px;margin-top:0}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-head b{font-weight:600;font-size:19px;letter-spacing:-.02em}
+.cal-nav{display:flex;gap:6px}
+.cal-nav button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:#fff;display:grid;place-items:center;cursor:pointer;transition:border-color .2s,transform .2s var(--ease)}
+.cal-nav button:hover:not(:disabled){border-color:var(--ink)}
+.cal-nav button:active:not(:disabled){transform:scale(.94)}
+.cal-nav button:disabled{opacity:.3;cursor:default}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.cal-wd{padding:6px 0;text-align:center;font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.day{position:relative;height:46px;min-width:0;padding:0;border-radius:12px;border:1px solid transparent;background:var(--surface);color:var(--ink);font:500 15px var(--sans);cursor:pointer;display:grid;place-items:center;transition:background-color .2s,border-color .2s,color .2s,transform .2s var(--ease)}
+.day:hover:not(:disabled){border-color:var(--ink)}
+.day:active:not(:disabled){transform:scale(.94)}
+.day:disabled{cursor:default}
+.day.blank{background:none;border:0;pointer-events:none}
+.day.off{background:none;color:#c9c9ce}
+.day.closed{background:none;color:#b6b6bc}
+.day.full{background:none;color:#a3a3a8;text-decoration:line-through;text-decoration-thickness:1.5px}
+.day.last::after,.leg .k.last::after{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--orange)}
+.day.sel{background:var(--ink);border-color:var(--ink);color:#fff}
+.cal-msg{margin:0;padding:38px 8px;text-align:center;color:var(--mute);font-size:15px}
+.cal-msg.err{color:#9a2f0a}
+.leg{display:flex;flex-wrap:wrap;gap:8px 18px;margin:14px 0 0;padding:0;list-style:none;font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.leg li{display:flex;align-items:center;gap:7px}
+.leg .k{position:relative;display:inline-block;width:16px;height:16px;border-radius:5px;background:var(--surface)}
+.leg .k.last::after{top:2px;right:2px;width:5px;height:5px}
+.leg .k.full{background:none;border:1px solid var(--line)}
+.leg .k.full::before{content:"";position:absolute;left:1px;right:1px;top:50%;height:1.5px;background:#a3a3a8}
+.leg .k.closed{background:none;border:1px dashed #d6d6d1}
+.win{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+.win-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.win-opts button{min-height:64px;padding:10px 16px;border-radius:var(--r-ctl);border:1px solid var(--line);background:#fff;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px;transition:background-color .2s,border-color .2s,color .2s}
+.win-opts button b{font-weight:600;font-size:15px}
+.win-opts button span{font:500 12px/1 var(--mono);letter-spacing:.04em;color:var(--mute)}
+.win-opts button:hover:not(:disabled){border-color:var(--ink)}
+.win-opts button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.win-opts button[aria-pressed="true"] span{color:#b5b5ba}
+.win-opts button:disabled{opacity:.4;cursor:default;text-decoration:line-through}
+.win-note{margin:0;font-size:14px;color:var(--mute)}
+.win-note b{color:var(--ink);font-weight:600}
+.okc{border-radius:var(--r-card);background:#fff;padding:clamp(26px,3vw,44px);display:flex;flex-direction:column;gap:18px;min-width:0}
+.okc .tick{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:var(--orange)}
+.okc h3{margin:0;font-weight:500;font-size:clamp(36px,4vw,54px);line-height:1;letter-spacing:-.045em}
+.okc p{margin:0;color:var(--mute);max-width:34em}
+.okc dl{margin:6px 0 0;padding:4px 20px;border-radius:18px;background:var(--surface)}
+.okc dl div{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px dashed #cfcfca}
+.okc dl div:last-child{border-bottom:0}
+.okc dt{font:500 12px/1.5 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.okc dd{margin:0;font-weight:500;text-align:right}
+.okc dd.code{font-family:var(--mono);letter-spacing:.06em}
+.okc .acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.okc .btn-line{min-height:52px}
+@media (max-width:520px){
+  .panel{padding:16px}
+  .form,.mv,.okc{padding:20px}
+  .chips{margin-inline:-16px;padding-inline:16px}
+  .cal-grid{gap:4px}
+  .day{height:44px}
+  .win-opts{grid-template-columns:minmax(0,1fr)}
+  .okc dl{padding:2px 16px}
+}
+
+/* how */
+.how{padding-bottom:clamp(80px,10vw,140px)}
+.how-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px 56px;align-items:end}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:48px}
+.step{border-radius:var(--r-card);background:var(--surface);padding:28px;display:flex;flex-direction:column;gap:10px;min-height:250px}
+.step .n{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:#fff;font:500 14px var(--mono);margin-bottom:auto}
+.step:nth-child(2) .n{background:var(--orange)}
+.step:nth-child(3){background:var(--ink);color:#fff}
+.step:nth-child(3) .n{background:var(--orange);color:var(--ink)}
+.step:nth-child(3) p{color:#b5b5ba}
+.step h3{margin:28px 0 0;font-weight:500;font-size:28px;letter-spacing:-.03em;line-height:1.05}
+.step p{margin:0;color:var(--mute);font-size:15px}
+@media (max-width:860px){.how-head{grid-template-columns:minmax(0,1fr)}.steps{grid-template-columns:minmax(0,1fr)}.step{min-height:0}}
+
+/* faq */
+.faq{padding-bottom:clamp(80px,10vw,140px)}
+.faq-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:40px 64px;align-items:start}
+@media (max-width:860px){.faq-wrap{grid-template-columns:minmax(0,1fr)}}
+.faq-list{display:flex;flex-direction:column;gap:8px}
+.faq-item{border-radius:18px;background:var(--surface);padding:0 22px;transition:background-color .25s}
+.faq-item[open]{background:#fff;box-shadow:inset 0 0 0 1px var(--line)}
+.faq-item summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:20px 0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{content:"";flex:none;width:30px;height:30px;border-radius:50%;background:#fff linear-gradient(currentColor,currentColor) center/11px 1.6px no-repeat;box-shadow:inset 0 0 0 1px var(--line);transition:transform .35s var(--ease)}
+.faq-item:not([open]) summary::after{background:linear-gradient(currentColor,currentColor) center/11px 1.6px no-repeat,linear-gradient(currentColor,currentColor) center/1.6px 11px no-repeat,#fff}
+.faq-item[open] summary::after{background-color:var(--orange);box-shadow:none;transform:rotate(180deg)}
+.faq-item p{margin:-4px 0 22px;color:var(--mute);max-width:62ch}
+.faq-item[open] p{animation:drop .4s var(--ease)}
+@keyframes drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+/* end CTA */
+.end .frame{min-height:clamp(560px,80svh,780px);display:flex;flex-direction:column;justify-content:flex-end;color:#fff;background:#222}
+.end .frame>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 35%;z-index:-2}
+.end .frame::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(13,13,15,.45),rgba(13,13,15,.68) 45%,rgba(13,13,15,.88))}
+.end-in{padding:clamp(28px,4vw,56px);display:flex;flex-direction:column;gap:32px}
+.end h2{margin:0 auto;text-align:center;font-weight:500;font-size:clamp(44px,6.4vw,100px);line-height:.98;letter-spacing:-.055em}
+.end h2 span{display:block}
+.end h2 .o{color:var(--orange)}
+.end .lede{margin:0 auto;text-align:center;color:rgba(255,255,255,.82)}
+.ecards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:980px;width:100%;margin:0 auto}
+.ecard{background:#fff;color:var(--ink);border-radius:22px;padding:22px;display:flex;flex-direction:column;gap:10px;text-decoration:none;transition:transform .4s var(--ease),box-shadow .3s}
+.ecard:hover{transform:translateY(-4px);box-shadow:0 20px 40px -20px rgba(0,0,0,.6)}
+.ecard .ic{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--orange);color:var(--ink)}
+.ecard b{font-size:19px;font-weight:600;letter-spacing:-.02em;margin-top:8px}
+.ecard span{font-size:14px;color:var(--mute)}
+.ecard .go{margin-top:auto;padding-top:8px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+.ecard .go .arr{transition:transform .35s var(--ease)}
+.ecard:hover .go .arr{transform:translateX(4px)}
+@media (max-width:860px){.ecards{grid-template-columns:minmax(0,1fr)}}
+footer{padding-block:28px calc(36px + env(safe-area-inset-bottom,0px))}
+.foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;font-size:14px;color:var(--mute)}
+.foot nav{display:flex;flex-wrap:wrap;gap:18px}
+.foot a{color:var(--ink);text-decoration:none}
+.foot a:hover{color:var(--orange-ink)}
+
+/* floating WhatsApp */
+.fab{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:30;width:58px;height:58px;border-radius:50%;background:var(--orange);color:var(--ink);display:flex;align-items:center;justify-content:center;box-shadow:0 12px 30px -8px rgba(0,0,0,.45);opacity:0;transform:translateY(16px) scale(.9);pointer-events:none;transition:opacity .25s ease,transform .25s ease}
+.fab.show{opacity:1;transform:none;pointer-events:auto}
+.fab svg{width:27px;height:27px;transition:transform .35s var(--ease)}
+.fab:hover svg{transform:rotate(-10deg)}
+
+/* scroll reveal: the resting state is visible; only position animates */
+.js .rv{transform:translateY(36px);transition:transform 1s var(--ease)}
+.js .rv.in{transform:none}
+
+@media (prefers-reduced-motion:reduce){
+  .hero .frame>img,.fcard,.mq-track,.marker,.faq-item[open] p,.mv.swap #mvTitle,.mv.swap #mvLine,.mv.swap #mvInc{animation:none}
+  .hero .frame>img{transform:none}
+  .load{height:auto}.load-stage{position:relative;height:auto}.load .frame{min-height:620px}
+  .btn,.btn .dot,.card img,.b-photo img,.menu,.fab,.ecard{transition:none}
+  .js .rv{transform:none}
+  .rail{scroll-behavior:auto}
+}
+'''
+
+BODY = r'''
+<a class="skip" href="#quote">Skip to quote</a>
+<header class="nav edge">
+<div class="nav-in">
+<a class="brand" href="#top" aria-label="Shammah Moving"><img src="assets/logo-160.png" alt="" width="34" height="34"><b>SHAMMAH</b></a>
+<nav class="links" aria-label="Main">
+<a href="#about" data-i18n="aboutEyebrow">{{aboutEyebrow}}</a>
+<a href="#services" data-i18n="navServices">{{navServices}}</a>
+<a href="#how" data-i18n="navHow">{{navHow}}</a>
+<a href="#faq" data-i18n="navFaq">{{navFaq}}</a>
+</nav>
+<div class="nav-r">
+<div class="lang" role="group" aria-label="{{langAria}}" data-i18n-aria="langAria">
+<button type="button" data-lang="en" aria-pressed="true">EN</button>
+<button type="button" data-lang="pt" aria-pressed="false">PT</button>
+</div>
+<a class="btn btn-o" href="#quote"><span data-i18n="navQuote">{{navQuote}}</span><span class="dot">%%ARR%%</span></a>
+<button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="menu" aria-label="{{menu}}"><span></span><span></span></button>
+</div>
+</div>
+</header>
+<div class="menu wrap" id="menu" hidden>
+<nav aria-label="Mobile">
+<a href="#about" data-i18n="aboutEyebrow">{{aboutEyebrow}}</a>
+<a href="#services" data-i18n="navServices">{{navServices}}</a>
+<a href="#quote" data-i18n="navQuote">{{navQuote}}</a>
+<a href="#how" data-i18n="navHow">{{navHow}}</a>
+<a href="#faq" data-i18n="navFaq">{{navFaq}}</a>
+</nav>
+<a class="btn btn-o js-wa" href="https://wa.me/%%WA%%" target="_blank" rel="noopener"><span data-i18n="ctaWa">{{ctaWa}}</span><span class="dot">%%ICON_WA%%</span></a>
+</div>
+
+<main id="top">
+<section class="hero edge" aria-label="Shammah Moving">
+<div class="frame">
+<img src="assets/windermere.webp" width="1600" height="1145" alt="{{heroAlt}}" data-i18n-alt="heroAlt" fetchpriority="high" decoding="async">
+<span class="hero-pin">Windermere, FL</span>
+<div class="hero-social"><a href="%%IG%%" target="_blank" rel="noopener">Instagram %%ARR_UP%%</a><a class="js-wa" href="https://wa.me/%%WA%%" target="_blank" rel="noopener">WhatsApp %%ARR_UP%%</a></div>
+<div class="hero-body">
+<div>
+<ul class="hero-tags"><li data-i18n="tLocal">{{tLocal}}</li><li data-i18n="tInter">{{tInter}}</li><li data-i18n="tIntl">{{tIntl}}</li></ul>
+<h1><span data-i18n="heroA">{{heroA}}</span><span class="o" data-i18n="heroB">{{heroB}}</span></h1>
+<p class="lede" data-i18n="heroSub">{{heroSub}}</p>
+<div class="ctas">
+<a class="btn btn-o js-wa" href="https://wa.me/%%WA%%" target="_blank" rel="noopener"><span data-i18n="ctaWa">{{ctaWa}}</span><span class="dot">%%ICON_WA%%</span></a>
+<a class="btn btn-glass" href="#quote" data-i18n="ctaQuote">{{ctaQuote}}</a>
+</div>
+</div>
+<div class="floats">
+<div class="fcard"><span class="ic">EN·PT</span><b data-i18n="hc1T">{{hc1T}}</b><span data-i18n="hc1D">{{hc1D}}</span></div>
+<div class="fcard"><span class="ic dk">%%ICON_TRUCK_SM%%</span><b data-i18n="hc2T">{{hc2T}}</b><span data-i18n="hc2D">{{hc2D}}</span></div>
+</div>
+</div>
+</div>
+</section>
+
+<div class="mq" aria-label="{{navServices}}" data-i18n-aria="navServices"><div class="mq-track">%%MARQUEE%%</div></div>
+
+<section class="about wrap" id="about">
+<p class="eyebrow" data-i18n="aboutEyebrow">{{aboutEyebrow}}</p>
+<h2 class="statement"><span data-i18n="ab1">{{ab1}}</span> <span class="ipill">%%ICON_TRUCK%%</span> <span data-i18n="ab2">{{ab2}}</span> <span class="m" data-i18n="ab3">{{ab3}}</span> <span class="ipill dk">%%ICON_PLANE%%</span> <span class="m" data-i18n="ab4">{{ab4}}</span></h2>
+</section>
+<div class="bento wrap">
+<article class="b b-photo rv">
+<img src="assets/packing.webp" width="1100" height="728" alt="" loading="lazy" decoding="async">
+<span class="tag">Windermere, FL</span>
+<div class="inner"><span class="lbl" data-i18n="fEst">{{fEst}}</span><span class="big">2008</span><p data-i18n="f1b">{{f1b}}</p></div>
+</article>
+<article class="b b-moves rv">
+<div><span class="lbl" data-i18n="qGroup">{{qGroup}}</span><div class="big" style="margin-top:14px">11</div><p style="margin-top:10px" data-i18n="b11">{{b11}}</p></div>
+<ul class="mini" id="miniMoves">%%MINI%%</ul>
+</article>
+<article class="b b-lang rv">
+<span class="lbl" data-i18n="langAria">{{langAria}}</span>
+<span class="big">EN · PT</span>
+<p data-i18n="bLang">{{bLang}}</p>
+</article>
+<article class="b b-dot rv">
+<div><span class="lbl">USDOT</span><div class="num" style="margin-top:12px">1547896</div><p style="margin-top:10px;color:#b5b5ba" data-i18n="f2b">{{f2b}}</p></div>
+<a href="%%FMCSA%%" target="_blank" rel="noopener"><span data-i18n="verify">{{verify}}</span>%%ARR%%</a>
+</article>
+</div>
+
+<section class="load edge" id="load" aria-labelledby="loadH">
+<div class="load-stage">
+<div class="frame">
+<div class="load-head">
+<div class="load-copy" id="copyA"><p class="eyebrow" data-i18n="loadEyebrow">{{loadEyebrow}}</p><h2 id="loadH"><span data-i18n="loadA">{{loadA}}</span><span class="o" data-i18n="loadB">{{loadB}}</span></h2></div>
+<div class="load-copy alt" id="copyB" aria-hidden="true"><h2><span data-i18n="packedA">{{packedA}}</span><span class="o" data-i18n="packedB">{{packedB}}</span></h2></div>
+</div>
+<div class="rig-wrap">%%TRUCK%%</div>
+<div class="hud" aria-hidden="true"><b id="hudLabel">{{hudLoading}}</b><span id="hudCount">00/11</span><span class="hud-bar"><i id="hudBar"></i></span></div>
+</div>
+</div>
+</section>
+
+<section class="svc wrap" id="services" aria-labelledby="svcH">
+<div class="svc-grid">
+<div class="svc-side">
+<div><p class="eyebrow" data-i18n="navServices">{{navServices}}</p><h2 class="h2" id="svcH" data-i18n="svcTitle">{{svcTitle}}</h2><p class="lede" data-i18n="svcLead">{{svcLead}}</p></div>
+<div class="arrows"><button type="button" id="prev" aria-label="{{prev}}" data-i18n-aria="prev">%%ARR_L%%</button><button type="button" id="next" aria-label="{{next}}" data-i18n-aria="next">%%ARR_R%%</button></div>
+</div>
+<div class="rail" id="rail">
+%%CARDS%%
+</div>
+</div>
+<div class="also">
+<h3 data-i18n="alsoTitle">{{alsoTitle}}</h3>
+%%ALSO%%
+</div>
+</section>
+
+<section class="quote-sec edge" id="quote">
+<div class="panel">
+<div class="q-head">
+<p class="eyebrow" data-i18n="qTitle">{{qTitle}}</p>
+<h2 class="h2" data-i18n="qH3">{{qH3}}</h2>
+<p class="lede" data-i18n="qSub">{{qSub}}</p>
+</div>
+<ol class="qsteps" aria-hidden="true">
+<li class="done" id="qs1"><b>1</b><span data-i18n="st1">{{st1}}</span></li>
+<li id="qs2"><b>2</b><span data-i18n="st2">{{st2}}</span></li>
+<li id="qs3"><b>3</b><span data-i18n="st3">{{st3}}</span></li>
+<li id="qs4"><b>4</b><span data-i18n="st4">{{st4}}</span></li>
+</ol>
+<div class="chips" id="moves" role="group" aria-label="{{qGroup}}" data-i18n-aria="qGroup">
+%%MOVES%%
+</div>
+<div class="quote">
+<div class="mv" id="mv" aria-live="polite">
+<h3 id="mvTitle">%%MV_TITLE%%</h3>
+<p id="mvLine">%%MV_LINE%%</p>
+<p class="lbl" data-i18n="mvInc">{{mvInc}}</p>
+<ul id="mvInc">%%MV_INC%%</ul>
+<dl class="sum" aria-live="polite">
+<div><dt data-i18n="sumDate">{{sumDate}}</dt><dd id="sumDate">—</dd></div>
+<div><dt data-i18n="sumArrive">{{sumArrive}}</dt><dd id="sumArr">—</dd></div>
+</dl>
+<p class="mv-foot" data-i18n="mvFoot">{{mvFoot}}</p>
+</div>
+<form class="form" id="qform" novalidate>
+<div class="blk">
+<p class="lbl" data-i18n="bkDate">{{bkDate}}</p>
+<div class="cal" id="cal"><p class="cal-msg" data-i18n="calLoad">{{calLoad}}</p></div>
+<ul class="leg" aria-hidden="true">
+<li><i class="k open"></i><span data-i18n="legOpen">{{legOpen}}</span></li>
+<li><i class="k last"></i><span data-i18n="legLast">{{legLast}}</span></li>
+<li><i class="k full"></i><span data-i18n="legFull">{{legFull}}</span></li>
+<li><i class="k closed"></i><span data-i18n="legClosed">{{legClosed}}</span></li>
+</ul>
+<div class="win" id="win" hidden></div>
+</div>
+<div class="blk">
+<p class="lbl" data-i18n="qDetails">{{qDetails}}</p>
+<div class="row">
+<label for="fName"><span data-i18n="lName">{{lName}}</span><input type="text" id="fName" name="name" autocomplete="name" maxlength="120" placeholder="{{phName}}" data-i18n-ph="phName"></label>
+<label for="fPhone"><span data-i18n="lPhone">{{lPhone}}</span><input type="tel" id="fPhone" name="phone" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="{{phPhone}}" data-i18n-ph="phPhone"></label>
+</div>
+<label for="fEmail"><span data-i18n="lEmail">{{lEmail}}</span><input type="email" id="fEmail" name="email" autocomplete="email" maxlength="160" placeholder="{{phEmail}}" data-i18n-ph="phEmail"></label>
+<div class="row">
+<label for="fFrom"><span data-i18n="lFrom">{{lFrom}}</span><input type="text" id="fFrom" name="from" autocomplete="address-level2" maxlength="300" placeholder="{{phFrom}}" data-i18n-ph="phFrom"></label>
+<label for="fTo"><span data-i18n="lTo">{{lTo}}</span><input type="text" id="fTo" name="to" maxlength="300" placeholder="{{phTo}}" data-i18n-ph="phTo"></label>
+</div>
+<label for="fDetails"><span data-i18n="lDetails">{{lDetails}}</span><input type="text" name="details" id="fDetails" maxlength="500" placeholder="%%MV_PH%%"></label>
+<label for="fNotes"><span data-i18n="lNotes">{{lNotes}}</span><textarea name="notes" id="fNotes" rows="2" maxlength="1000" placeholder="{{phNotes}}" data-i18n-ph="phNotes"></textarea></label>
+<input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+</div>
+<p class="verr" id="formErr" role="alert" hidden></p>
+<button type="submit" class="btn btn-ink" id="bookBtn"><span id="bookTxt" data-i18n="bookBtn">{{bookBtn}}</span><span class="dot">%%ARR%%</span></button>
+<a class="btn btn-line wide" id="waMove" href="https://wa.me/%%WA%%" target="_blank" rel="noopener"><span data-i18n="sendWa">{{sendWa}}</span>%%ICON_WA%%</a>
+<p class="note" data-i18n="sendNote">{{sendNote}}</p>
+</form>
+<div class="okc" id="done" hidden aria-live="polite"></div>
+</div>
+</div>
+</section>
+
+<section class="how wrap" id="how">
+<div class="how-head">
+<div><p class="eyebrow" data-i18n="navHow">{{navHow}}</p><h2 class="h2" data-i18n="howTitle">{{howTitle}}</h2></div>
+</div>
+<div class="steps">
+<div class="step rv"><span class="n">01</span><h3 data-i18n="h1t">{{h1t}}</h3><p data-i18n="h1d">{{h1d}}</p></div>
+<div class="step rv"><span class="n">02</span><h3 data-i18n="h2t">{{h2t}}</h3><p data-i18n="h2d">{{h2d}}</p></div>
+<div class="step rv"><span class="n">03</span><h3 data-i18n="h3t">{{h3t}}</h3><p data-i18n="h3d">{{h3d}}</p></div>
+</div>
+</section>
+
+<section class="faq wrap" id="faq">
+<div class="faq-wrap">
+<div><p class="eyebrow" data-i18n="navFaq">{{navFaq}}</p><h2 class="h2" data-i18n="faqTitle">{{faqTitle}}</h2></div>
+<div class="faq-list">
+%%FAQ%%
+</div>
+</div>
+</section>
+
+<section class="end edge" aria-labelledby="endH">
+<div class="frame">
+<img src="assets/freight.webp" width="1100" height="728" alt="" loading="lazy" decoding="async">
+<div class="end-in">
+<h2 id="endH"><span data-i18n="endA">{{endA}}</span><span class="o" data-i18n="endB">{{endB}}</span></h2>
+<p class="lede" data-i18n="endSub">{{endSub}}</p>
+<div class="ecards">
+<a class="ecard js-wa" href="https://wa.me/%%WA%%" target="_blank" rel="noopener"><span class="ic">%%ICON_WA%%</span><b>WhatsApp</b><span data-i18n="endC1D">{{endC1D}}</span><span class="go"><span data-i18n="open">{{open}}</span>%%ARR%%</span></a>
+<a class="ecard" href="tel:%%PHONE%%"><span class="ic">%%ICON_PHONE%%</span><b>%%PHONE_LABEL%%</b><span data-i18n="endC2D">{{endC2D}}</span><span class="go"><span data-i18n="call">{{call}}</span>%%ARR%%</span></a>
+<a class="ecard" href="%%IG%%" target="_blank" rel="noopener"><span class="ic">%%ICON_IG%%</span><b>@shammahmoving</b><span data-i18n="endC3D">{{endC3D}}</span><span class="go"><span data-i18n="open">{{open}}</span>%%ARR%%</span></a>
+</div>
+</div>
+</div>
+</section>
+</main>
+
+<footer class="wrap">
+<div class="foot">
+<span data-i18n="footRights">{{footRights}}</span>
+<nav aria-label="Contact">
+<a href="mailto:%%EMAIL%%">%%EMAIL%%</a>
+<a href="tel:%%PHONE%%">%%PHONE_LABEL%%</a>
+<a href="%%IG%%" target="_blank" rel="noopener">Instagram</a>
+<a class="js-wa" href="https://wa.me/%%WA%%" target="_blank" rel="noopener">WhatsApp</a>
+<a href="admin.html" data-i18n="staffLogin">{{staffLogin}}</a>
+</nav>
+</div>
+</footer>
+
+<a class="fab js-wa" id="fab" href="https://wa.me/%%WA%%" target="_blank" rel="noopener" aria-label="{{fabAria}}" data-i18n-aria="fabAria">%%ICON_WA%%</a>
+'''
+
+JS = r'''
+(function () {
+  document.documentElement.classList.add("js");
+  var WA = "%%WA%%";
+  var T = %%T%%;
+  var MOVES = %%MOVES_JSON%%;
+  var CHECK = %%CHECK%%;
+  var ITEMS = %%ITEMS%%;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var reduce = false;
+  try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+  var state = { lang: "en", move: "house", date: null, win: null, month: null };
+  function cl(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+  function sm(x) { x = cl(x); return x * x * (3 - 2 * x); }
+  function eio(x) { x = cl(x); return x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; }
+  function pad(v) { return (v < 10 ? "0" : "") + v; }
+
+  /* ---------- language + booking ---------- */
+  var form = $("#qform"), mv = $("#mv"), menuBtn = $("#menuBtn"), menu = $("#menu"), doneEl = $("#done");
+  var hudText = "";
+  var SPAN = %%SPAN%%;
+  var ARR = %%JARR%%, ARR_L = %%JARR_L%%, ARR_R = %%JARR_R%%, ICON_WA = %%JICON_WA%%;
+  var TICK = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#121214" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  var cfg = { wa: WA, morning: "8–10 AM", afternoon: "1–3 PM" };
+  var avail = {}, loading = true, failed = false, booked = null, busy = false, focusAfter = null;
+  function wa(text) { return "https://wa.me/" + cfg.wa + "?text=" + encodeURIComponent(text); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function tpl(s, o) { return s.replace(/\{(\w+)\}/g, function (m, k) { return o[k] != null ? o[k] : m; }); }
+  function pad2(v) { return (v < 10 ? "0" : "") + v; }
+  function up(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function mvOf(id) { var l = MOVES[state.lang]; for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i]; return l[0]; }
+  function cur() { return mvOf(state.move); }
+  function isHalf(id) { return SPAN[id] === "half"; }
+  function winLabel(w) { return w === "afternoon" ? cfg.afternoon : cfg.morning; }
+  function A() { return avail[state.move]; }
+  function fmtDate(v) { var p = v.split("-"); if (p.length !== 3) return v; return state.lang === "pt" ? p[2] + "/" + p[1] + "/" + p[0] : p[1] + "/" + p[2] + "/" + p[0]; }
+
+  function renderMove(animate) {
+    var m = cur();
+    $$("#moves .chip").forEach(function (b) {
+      b.textContent = mvOf(b.dataset.move).label;
+      b.setAttribute("aria-pressed", b.dataset.move === state.move ? "true" : "false");
+    });
+    $("#mvTitle").textContent = m.title;
+    $("#mvLine").textContent = m.line;
+    $("#mvInc").innerHTML = m.inc.map(function (x) { return "<li>" + CHECK + "<span>" + esc(x) + "</span></li>"; }).join("");
+    $("#fDetails").placeholder = m.ph;
+    if (animate && !reduce) { mv.classList.remove("swap"); void mv.offsetWidth; mv.classList.add("swap"); }
+    updateQuote();
+  }
+  function updateQuote() {
+    var t = T[state.lang], m = cur(), f = form.elements;
+    var lines = [t.msgHi, t.msgType + ": " + m.title];
+    if (f.from.value.trim()) lines.push(t.msgFrom + ": " + f.from.value.trim());
+    if (f.to.value.trim()) lines.push(t.msgTo + ": " + f.to.value.trim());
+    if (state.date) lines.push(t.msgDate + ": " + fmtDate(state.date));
+    if (f.details.value.trim()) lines.push(t.msgDet + ": " + f.details.value.trim());
+    $("#waMove").href = wa(lines.join("\n"));
+  }
+  function updateSteps() {
+    var f = form.elements, ok = state.date && (!isHalf(state.move) || state.win);
+    $("#qs2").classList.toggle("done", !!ok);
+    $("#qs3").classList.toggle("done", !!(f.name.value.trim() && f.phone.value.replace(/\D/g, "").length >= 10));
+    $("#qs4").classList.toggle("done", !!booked);
+  }
+  function showErr(msg) { var el = $("#formErr"); el.textContent = msg || ""; el.hidden = !msg; }
+
+  /* availability comes from the database: free crews per day for the chosen type of move */
+  function loadAvail(force) {
+    var id = state.move;
+    if (avail[id] && !force) { loading = false; failed = false; afterAvail(); return; }
+    loading = true; failed = false; renderCal();
+    SB.rpc("get_availability", { p_type: id }).then(function (rows) {
+      var map = {}, first = null;
+      rows.forEach(function (r) { map[r.d] = r; if (!first && r.s === "open") first = r.d; });
+      avail[id] = { map: map, first: first, firstDay: rows.length ? rows[0].d : null, lastDay: rows.length ? rows[rows.length - 1].d : null };
+    }).catch(function () { if (id === state.move) failed = true; }).then(function () {
+      if (id !== state.move) return;
+      loading = false; afterAvail();
+    });
+  }
+  function afterAvail() {
+    var a = A();
+    if (a && a.firstDay && !state.month) state.month = (a.first || a.firstDay).slice(0, 7);
+    renderCal(); renderWin(); renderSum(); updateSteps();
+  }
+  function renderCal() {
+    var box = $("#cal"), t = T[state.lang], a = A();
+    if (loading) { box.innerHTML = '<p class="cal-msg">' + esc(t.calLoad) + "</p>"; return; }
+    if (failed || !a || !a.firstDay || !state.month) { box.innerHTML = '<p class="cal-msg err">' + esc(t.calFail) + "</p>"; return; }
+    var ym = state.month, y = +ym.slice(0, 4), mo = +ym.slice(5, 7);
+    var lead = SB.dow(ym + "-01"), days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+    var minM = a.firstDay.slice(0, 7), maxM = a.lastDay.slice(0, 7), i, d;
+    var h = '<div class="cal-head"><b>' + esc(up(SB.fmt(ym + "-01", state.lang, { month: "long", year: "numeric" }))) + '</b><div class="cal-nav">' +
+      '<button type="button" data-nav="-1" aria-label="' + esc(t.calPrev) + '"' + (ym <= minM ? " disabled" : "") + ">" + ARR_L + "</button>" +
+      '<button type="button" data-nav="1" aria-label="' + esc(t.calNext) + '"' + (ym >= maxM ? " disabled" : "") + ">" + ARR_R + "</button></div></div>" +
+      '<div class="cal-grid">';
+    for (i = 0; i < 7; i++) h += '<span class="cal-wd" aria-hidden="true">' + esc(SB.fmt("2026-11-0" + (1 + i), state.lang, { weekday: "short" }).replace(".", "").slice(0, 3)) + "</span>";
+    for (i = 0; i < lead; i++) h += '<span class="day blank"></span>';
+    for (d = 1; d <= days; d++) {
+      var ds = ym + "-" + pad2(d), r = a.map[ds], cls = "day", dis = true, word = t.aClosed;
+      if (!r) cls += " off";
+      else if (r.s === "closed") cls += " closed";
+      else if (r.s === "full") { cls += " full"; word = t.aFull; }
+      else { dis = false; word = r.lo ? t.aLast : t.aOpen; if (r.lo) cls += " last"; }
+      if (ds === state.date) cls += " sel";
+      h += '<button type="button" class="' + cls + '" data-d="' + ds + '"' + (dis ? " disabled" : "") + (ds === state.date ? ' aria-pressed="true"' : "") +
+        ' aria-label="' + esc(SB.longDate(ds, state.lang) + ", " + word) + '">' + d + "</button>";
+    }
+    box.innerHTML = h + "</div>";
+    if (focusAfter) {
+      var el = box.querySelector(focusAfter);
+      if (el && !el.disabled) el.focus();
+      focusAfter = null;
+    }
+  }
+  function renderWin() {
+    var el = $("#win"), t = T[state.lang], a = A(), r = a && state.date ? a.map[state.date] : null;
+    if (!r) { el.hidden = true; el.innerHTML = ""; return; }
+    el.hidden = false;
+    if (!isHalf(state.move)) {
+      el.innerHTML = '<p class="win-note">' + tpl(esc(t.winFull), { w: "<b>" + esc(cfg.morning) + "</b>" }) + "</p>";
+      return;
+    }
+    var h = '<p class="lbl">' + esc(t.winH) + '</p><div class="win-opts">';
+    [["morning", t.winM], ["afternoon", t.winA]].forEach(function (p) {
+      var ok = r.w.indexOf(p[0]) > -1;
+      h += '<button type="button" data-w="' + p[0] + '"' + (ok ? "" : " disabled") + ' aria-pressed="' + (state.win === p[0] ? "true" : "false") + '"><b>' + esc(p[1]) + "</b><span>" + esc(winLabel(p[0])) + "</span></button>";
+    });
+    el.innerHTML = h + "</div>";
+  }
+  function renderSum() {
+    var t = T[state.lang], d = $("#sumDate"), ar = $("#sumArr");
+    if (state.date) { d.textContent = SB.fmt(state.date, state.lang, { weekday: "short", month: "short", day: "numeric", year: "numeric" }); d.className = "set"; }
+    else { d.textContent = t.sumPick; d.className = ""; }
+    var ok = state.date && (!isHalf(state.move) || state.win);
+    if (ok) { ar.textContent = winLabel(isHalf(state.move) ? state.win : "morning"); ar.className = "set"; }
+    else { ar.textContent = "—"; ar.className = ""; }
+  }
+  function pickDate(ds) {
+    var a = A(), r = a && a.map[ds];
+    if (!r || r.s !== "open") return;
+    state.date = ds;
+    if (!isHalf(state.move)) state.win = "morning";
+    else if (r.w.length === 1) state.win = r.w[0];
+    else if (r.w.indexOf(state.win) < 0) state.win = null;
+    focusAfter = '.day[data-d="' + ds + '"]';
+    renderCal(); renderWin(); renderSum(); updateSteps(); updateQuote(); showErr("");
+  }
+  function selectMove(id) {
+    state.move = id; state.date = null; state.win = null; state.month = null;
+    renderMove(true); renderWin(); renderSum(); updateSteps();
+    loadAvail();
+  }
+
+  $("#cal").addEventListener("click", function (ev) {
+    var n = ev.target.closest("[data-nav]"), b = ev.target.closest("button.day[data-d]");
+    if (n && !n.disabled) {
+      var ym = state.month, y = +ym.slice(0, 4), mo = +ym.slice(5, 7) + (+n.dataset.nav);
+      if (mo < 1) { mo = 12; y--; } else if (mo > 12) { mo = 1; y++; }
+      state.month = y + "-" + pad2(mo);
+      focusAfter = '[data-nav="' + n.dataset.nav + '"]';
+      renderCal();
+    } else if (b && !b.disabled) pickDate(b.dataset.d);
+  });
+  $("#win").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button[data-w]");
+    if (!b || b.disabled) return;
+    state.win = b.dataset.w;
+    renderWin(); renderSum(); updateSteps(); showErr("");
+  });
+
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (busy) return;
+    var t = T[state.lang], f = form.elements, err = "", focusEl = null;
+    if (f.website.value) return;
+    if (!state.date) { err = t.vDate; focusEl = $("#cal .day:not(:disabled)"); }
+    else if (isHalf(state.move) && !state.win) { err = t.vWin; focusEl = $("#win button:not(:disabled)"); }
+    else if (!f.name.value.trim()) { err = t.vName; focusEl = f.name; }
+    else if (f.phone.value.replace(/\D/g, "").length < 10) { err = t.vPhone; focusEl = f.phone; }
+    if (err) { showErr(err); if (focusEl) focusEl.focus(); return; }
+    showErr("");
+    busy = true;
+    var btn = $("#bookBtn"), txt = $("#bookTxt");
+    btn.disabled = true; txt.textContent = t.sending;
+    var sent = { type: state.move, date: state.date, win: state.win || "morning" };
+    SB.rpc("book_move", {
+      p_type: sent.type, p_date: sent.date, p_win: sent.win,
+      p_name: f.name.value.trim(), p_phone: f.phone.value.trim(), p_email: f.email.value.trim(),
+      p_from: f.from.value.trim(), p_to: f.to.value.trim(), p_size: f.details.value.trim(), p_notes: f.notes.value.trim(),
+      p_lang: state.lang
+    }).then(function (r) {
+      booked = { token: r.token, code: r.code, status: r.status, type: sent.type, date: sent.date, win: sent.win };
+      delete avail[sent.type];
+      showDone();
+    }).catch(function (e) {
+      showErr(SB.errText(e, state.lang));
+      if (/DATE_TAKEN|DATE_INVALID|WINDOW_INVALID/.test(e.message || "")) {
+        state.date = null; state.win = null; delete avail[state.move];
+        renderWin(); renderSum(); updateSteps(); loadAvail(true);
+      }
+    }).then(function () {
+      busy = false; btn.disabled = false; txt.textContent = T[state.lang].bookBtn;
+    });
+  });
+  form.addEventListener("input", function () { updateQuote(); updateSteps(); });
+
+  function renderDone() {
+    if (!booked) return;
+    var t = T[state.lang], m = mvOf(booked.type), dl = SB.longDate(booked.date, state.lang), pend = booked.status === "pending";
+    var arr = winLabel(isHalf(booked.type) ? booked.win : "morning");
+    var link = "reserva.html?t=" + encodeURIComponent(booked.token) + "&lang=" + state.lang;
+    var msg = tpl(t.waBook, { t: m.title, d: SB.fmt(booked.date, state.lang, { month: "short", day: "numeric", year: "numeric" }), c: booked.code });
+    function row(k, v, c) { return "<div><dt>" + esc(k) + "</dt><dd" + (c ? ' class="' + c + '"' : "") + ">" + esc(v) + "</dd></div>"; }
+    doneEl.innerHTML = '<span class="tick">' + TICK + '</span><h3 id="doneH" tabindex="-1">' + esc(pend ? t.okPending : t.okConfirmed) + "</h3><p>" +
+      esc(tpl(pend ? t.okSubPending : t.okSubConfirmed, { d: dl })) + "</p><dl>" +
+      row(t.okType, m.title) + row(t.okDate, dl) + row(t.okArrive, arr) + row(t.okCode, booked.code, "code") + "</dl>" +
+      '<div class="acts"><a class="btn btn-ink" href="' + esc(link) + '"><span>' + esc(t.okManage) + '</span><span class="dot">' + ARR + "</span></a>" +
+      '<a class="btn btn-line" href="' + esc(wa(msg)) + '" target="_blank" rel="noopener">' + esc(t.okWa) + ICON_WA + "</a>" +
+      '<button type="button" class="btn btn-line" id="again">' + esc(t.okAgain) + "</button></div>";
+  }
+  function showDone() {
+    form.hidden = true; doneEl.hidden = false;
+    renderDone(); updateSteps();
+    var h = $("#doneH"); if (h) h.focus({ preventScroll: true });
+    $("#quote").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }
+  doneEl.addEventListener("click", function (ev) {
+    if (!ev.target.closest("#again")) return;
+    booked = null; form.reset(); state.date = null; state.win = null; state.month = null;
+    doneEl.hidden = true; doneEl.innerHTML = ""; form.hidden = false;
+    renderMove(false); renderWin(); renderSum(); updateSteps(); showErr("");
+    loadAvail(true);
+    $("#quote").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  });
+
+  /* settings the owner controls in the admin panel (WhatsApp number, arrival windows, which move types are offered) */
+  function loadConfig() {
+    SB.select("settings", "select=whatsapp,morning_label,afternoon_label&id=eq.1").then(function (r) {
+      if (!r || !r[0]) return;
+      if (r[0].whatsapp) cfg.wa = String(r[0].whatsapp).replace(/\D/g, "") || cfg.wa;
+      if (r[0].morning_label) cfg.morning = r[0].morning_label;
+      if (r[0].afternoon_label) cfg.afternoon = r[0].afternoon_label;
+      $$(".js-wa").forEach(function (a) { a.href = wa(T[state.lang].waGeneral); });
+      updateQuote(); renderWin(); renderSum(); renderDone();
+    }).catch(function () {});
+    SB.select("move_types", "select=id,span&active=eq.true").then(function (rows) {
+      if (!rows || !rows.length) return;
+      var on = {};
+      rows.forEach(function (r) { on[r.id] = 1; SPAN[r.id] = r.span; });
+      $$("#moves .chip").forEach(function (b) { b.hidden = !on[b.dataset.move]; });
+      $$("[data-pick]").forEach(function (a) { a.hidden = !on[a.dataset.pick]; });
+      if (!on[state.move]) { var f = rows[0].id; selectMove(f); }
+      else { renderWin(); renderSum(); }
+    }).catch(function () {});
+  }
+
+  function setLang(l) {
+    state.lang = l === "pt" ? "pt" : "en";
+    var t = T[state.lang];
+    document.documentElement.lang = state.lang === "pt" ? "pt-BR" : "en";
+    document.title = t.metaTitle;
+    var md = $('meta[name="description"]'); if (md) md.setAttribute("content", t.metaDesc);
+    $$("[data-i18n]").forEach(function (el) { var v = t[el.dataset.i18n]; if (v != null) el.textContent = v; });
+    $$("[data-i18n-ph]").forEach(function (el) { el.placeholder = t[el.dataset.i18nPh]; });
+    $$("[data-i18n-alt]").forEach(function (el) { el.alt = t[el.dataset.i18nAlt]; });
+    $$("[data-i18n-aria]").forEach(function (el) { el.setAttribute("aria-label", t[el.dataset.i18nAria]); });
+    $$(".lang button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.lang === state.lang ? "true" : "false"); });
+    $$(".js-wa").forEach(function (a) { a.href = wa(t.waGeneral); });
+    $("#miniMoves").innerHTML = MOVES[state.lang].slice(0, 6).map(function (m) { return "<li>" + esc(m.label) + "</li>"; }).join("");
+    menuBtn.setAttribute("aria-label", menuBtn.getAttribute("aria-expanded") === "true" ? t.menuClose : t.menu);
+    if (busy) $("#bookTxt").textContent = t.sending;
+    renderMove(false); renderCal(); renderWin(); renderSum(); renderDone();
+    hudText = "";
+    queue();
+    try { localStorage.setItem("shammah-lang", state.lang); } catch (e) {}
+  }
+
+  /* ---------- mobile menu ---------- */
+  function setMenu(open) {
+    menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    menuBtn.setAttribute("aria-label", T[state.lang][open ? "menuClose" : "menu"]);
+    if (open) {
+      menu.hidden = false;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { menu.classList.add("open"); }); });
+      document.body.style.overflow = "hidden";
+    } else {
+      menu.classList.remove("open");
+      document.body.style.overflow = "";
+      setTimeout(function () { if (!menu.classList.contains("open")) menu.hidden = true; }, reduce ? 0 : 320);
+    }
+  }
+  menuBtn.addEventListener("click", function () { setMenu(menuBtn.getAttribute("aria-expanded") !== "true"); });
+  $$("#menu a").forEach(function (a) { a.addEventListener("click", function () { setMenu(false); }); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !menu.hidden) { setMenu(false); menuBtn.focus(); } });
+  window.addEventListener("resize", function () { if (window.innerWidth > 980 && !menu.hidden) setMenu(false); });
+
+  /* ---------- the loading truck ---------- */
+  var load = $("#load"), truck = $("#truck"), ramp = $("#ramp"), shutter = $("#shutter");
+  var its = $$("#items .it"), spins = $$("#truck .spin"), copyA = $("#copyA"), copyB = $("#copyB");
+  var rig = $("#rig"), narrow = null, hudLabel = $("#hudLabel"), hudCount = $("#hudCount"), hudBar = $("#hudBar");
+  var N = ITEMS.length, SP = .55, DUR = 1.5, LMAX = SP * (N - 1) + DUR;
+  function groundY(x) { return x <= 200 ? 492 : x >= 330 ? 430 : 492 - (x - 200) * 62 / 130; }
+  function pose(d, u) {
+    var x2 = 338 + d.w / 2, x, y, r = 0;
+    if (u < .5) {
+      x = 95 + (x2 - 95) * eio(u / .5);
+      y = groundY(x) - Math.abs(Math.sin(u * Math.PI * 6)) * 3;
+      r = -25.5 * sm((x - 200) / 14) * (1 - sm((x - 318) / 12));
+    } else {
+      var b = eio((u - .5) / .5), lift = Math.max(0, Math.min(36, d.by - d.h - 172));
+      x = x2 + (d.cx - x2) * b;
+      y = 430 + (d.by - 430) * b - lift * Math.sin(Math.PI * b);
+    }
+    return [x, y, r];
+  }
+  function progress(el) {
+    var r = el.getBoundingClientRect(), tot = r.height - window.innerHeight;
+    return tot > 0 ? cl(-r.top / tot) : (r.top < 0 ? 1 : 0);
+  }
+  function renderLoad() {
+    var nw = window.innerWidth < 761;
+    if (nw !== narrow) { narrow = nw; rig.setAttribute("viewBox", nw ? "300 150 900 380" : "0 150 1280 380"); }
+    var p = reduce ? 0 : progress(load);
+    var L = reduce ? LMAX : LMAX * cl((p - .02) / .53), done = 0;
+    for (var i = 0; i < N; i++) {
+      var u = cl((L - i * SP) / DUR), g = its[i];
+      if (u <= 0) { g.style.opacity = 0; continue; }
+      if (u >= 1) done++;
+      var q = pose(ITEMS[i], u);
+      g.style.opacity = cl(u / .06);
+      g.setAttribute("transform", "translate(" + q[0].toFixed(1) + " " + q[1].toFixed(1) + ") rotate(" + q[2].toFixed(2) + ")");
+    }
+    var rOut = sm((p - .56) / .06), c = sm((p - .6) / .14), d = cl((p - .8) / .2);
+    var dx = 1500 * Math.pow(d, 2.1);
+    ramp.style.opacity = 1 - rOut;
+    ramp.setAttribute("transform", "translate(" + (rOut * 130).toFixed(1) + " 0)");
+    shutter.setAttribute("transform", "translate(0 " + (-262 * (1 - c)).toFixed(1) + ")");
+    truck.setAttribute("transform", "translate(" + dx.toFixed(1) + " 0)");
+    var ang = (dx / 42) * 57.2958;
+    spins.forEach(function (s) { s.setAttribute("transform", "rotate(" + ang.toFixed(1) + ")"); });
+    var a = 1 - sm((p - .64) / .08), b = sm((p - .76) / .08);
+    copyA.style.opacity = a; copyA.style.transform = "translateY(" + ((1 - a) * -20).toFixed(1) + "px)";
+    copyB.style.opacity = b; copyB.style.transform = "translateY(" + ((1 - b) * 20).toFixed(1) + "px)";
+    copyB.setAttribute("aria-hidden", b > .5 ? "false" : "true");
+    var t = T[state.lang], label = d > 0 ? t.hudRoad : (c > .98 ? t.hudPacked : t.hudLoading), txt = label + "|" + done;
+    if (txt !== hudText) { hudText = txt; hudLabel.textContent = label; hudCount.textContent = pad(done) + "/" + N; }
+    hudBar.style.transform = "scaleX(" + (reduce ? 1 : p).toFixed(4) + ")";
+  }
+
+  /* ---------- services rail ---------- */
+  var rail = $("#rail"), prev = $("#prev"), next = $("#next");
+  function step() { var c = rail.querySelector(".card"); return c ? c.getBoundingClientRect().width + 14 : 300; }
+  function arrows() {
+    prev.disabled = rail.scrollLeft < 8;
+    next.disabled = rail.scrollLeft + rail.clientWidth > rail.scrollWidth - 8;
+  }
+  prev.addEventListener("click", function () { rail.scrollBy({ left: -step(), behavior: reduce ? "auto" : "smooth" }); });
+  next.addEventListener("click", function () { rail.scrollBy({ left: step(), behavior: reduce ? "auto" : "smooth" }); });
+  rail.addEventListener("scroll", arrows, { passive: true });
+  $$("[data-pick]").forEach(function (a) { a.addEventListener("click", function () { selectMove(a.dataset.pick); }); });
+
+  /* ---------- reveal ---------- */
+  if ("IntersectionObserver" in window && !reduce) {
+    var io = new IntersectionObserver(function (en) {
+      en.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add("in"); io.unobserve(x.target); } });
+    }, { rootMargin: "0px 0px -6% 0px" });
+    $$(".rv").forEach(function (el, i) { el.style.transitionDelay = (i % 4) * 70 + "ms"; io.observe(el); });
+  } else {
+    $$(".rv").forEach(function (el) { el.classList.add("in"); });
+  }
+
+  /* ---------- loop ---------- */
+  var fab = $("#fab"), ticking = false;
+  function frame() {
+    ticking = false;
+    renderLoad();
+    fab.classList.toggle("show", window.scrollY > window.innerHeight * .8);
+  }
+  function queue() { if (!ticking) { ticking = true; requestAnimationFrame(frame); } }
+  window.addEventListener("scroll", queue, { passive: true });
+  window.addEventListener("resize", function () { queue(); arrows(); });
+
+  $$(".lang button").forEach(function (b) { b.addEventListener("click", function () { setLang(b.dataset.lang); }); });
+  $$("#moves .chip").forEach(function (b) { b.addEventListener("click", function () { selectMove(b.dataset.move); }); });
+
+  var initial = "en";
+  try {
+    var qs = new URLSearchParams(location.search).get("lang");
+    if (qs === "pt" || qs === "en") initial = qs;
+    else if (localStorage.getItem("shammah-lang")) initial = localStorage.getItem("shammah-lang");
+  } catch (e) {}
+  setLang(initial);
+  arrows();
+  loadConfig();
+  loadAvail();
+})();
+'''
+
+
+def font_faces(inline):
+    faces = [
+        ("Barlow Condensed", "italic", 800, "barlow-condensed-latin-800-italic"),
+        ("Barlow Condensed", "italic", 900, "barlow-condensed-latin-900-italic"),
+        ("Geist", "normal", 400, "geist-latin-400-normal"),
+        ("Geist", "normal", 500, "geist-latin-500-normal"),
+        ("Geist", "normal", 600, "geist-latin-600-normal"),
+        ("Geist Mono", "normal", 500, "geist-mono-latin-500-normal"),
+    ]
+    out = []
+    for fam, style, w, f in faces:
+        if inline:
+            b64 = base64.b64encode((HERE / "assets/fonts" / f"{f}.woff2").read_bytes()).decode()
+            src = f"url(data:font/woff2;base64,{b64}) format(\"woff2\")"
+        else:
+            src = f"url(/assets/fonts/{f}.woff2) format(\"woff2\")"
+        out.append(f'@font-face{{font-family:"{fam}";font-style:{style};font-weight:{w};font-display:swap;src:{src}}}')
+    return "\n".join(out)
+
+
+body = fill(BODY)
+repl = {
+    "%%TRUCK%%": truck_svg(),
+    "%%CARDS%%": svc_cards(),
+    "%%ALSO%%": also(),
+    "%%MARQUEE%%": marquee(),
+    "%%MINI%%": mini_moves,
+    "%%MOVES%%": move_buttons(),
+    "%%MV_TITLE%%": html.escape(first["title"]),
+    "%%MV_LINE%%": html.escape(first["line"]),
+    "%%MV_INC%%": first_inc,
+    "%%MV_PH%%": html.escape(first["ph"], quote=True),
+    "%%FAQ%%": faq_html,
+    "%%ICON_TRUCK_SM%%": ICON_TRUCK.replace("<svg ", '<svg width="22" height="22" '),
+    "%%ICON_TRUCK%%": ICON_TRUCK, "%%ICON_PLANE%%": ICON_PLANE,
+    "%%ICON_WA%%": ICON_WA, "%%ICON_IG%%": ICON_IG, "%%ICON_PHONE%%": ICON_PHONE,
+    "%%ARR_UP%%": ARR_UP, "%%ARR_L%%": ARR_L, "%%ARR_R%%": ARR_R, "%%ARR%%": ARR,
+    "%%FMCSA%%": html.escape(FMCSA, quote=True),
+    "%%WA%%": WA, "%%PHONE%%": PHONE, "%%PHONE_LABEL%%": PHONE_LABEL, "%%EMAIL%%": EMAIL, "%%IG%%": IG,
+}
+for k, v in repl.items():
+    body = body.replace(k, v)
+
+js = JS
+for k, v in {
+    "%%WA%%": WA,
+    "%%T%%": json.dumps(T, ensure_ascii=False),
+    "%%MOVES_JSON%%": json.dumps(MOVES, ensure_ascii=False),
+    "%%CHECK%%": json.dumps(CHECK),
+    "%%ITEMS%%": json.dumps(ITEM_DATA),
+    "%%SPAN%%": json.dumps(DEFAULT_SPAN),
+    "%%JARR%%": json.dumps(ARR), "%%JARR_L%%": json.dumps(ARR_L), "%%JARR_R%%": json.dumps(ARR_R), "%%JICON_WA%%": json.dumps(ICON_WA),
+}.items():
+    js = js.replace(k, v)
+assert "%%" not in body and "%%" not in js and "{{" not in body
+
+schema = {
+    "@context": "https://schema.org", "@type": "MovingCompany", "name": "Shammah Moving", "url": SITE_URL,
+    "image": SITE_URL + "/assets/og-image.jpg", "logo": SITE_URL + "/assets/logo.png", "telephone": PHONE,
+    "email": EMAIL, "foundingDate": "2008",
+    "address": {"@type": "PostalAddress", "addressLocality": "Windermere", "addressRegion": "FL", "postalCode": "34786", "addressCountry": "US"},
+    "areaServed": ["Windermere, FL", "Orlando, FL", "Central Florida"], "knowsLanguage": ["en", "pt-BR"], "sameAs": [IG],
+}
+
+HEAD = f'''<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{e("metaTitle")}</title>
 <meta name="description" content="{e("metaDesc")}">
-<meta name="theme-color" content="#0b0b0c">
+<meta name="theme-color" content="#ffffff">
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="/assets/icon-192.png" sizes="192x192" type="image/png">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -273,448 +1355,30 @@ page = f'''<!doctype html>
 <link rel="alternate" hreflang="pt-BR" href="{SITE_URL}/?lang=pt">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Shammah Moving">
-<meta property="og:title" content="Shammah Moving · Precisou? É só Shammah.">
+<meta property="og:title" content="Shammah Moving · Moving? Just call Shammah.">
 <meta property="og:description" content="{e("metaDesc")}">
 <meta property="og:url" content="{SITE_URL}/">
 <meta property="og:image" content="{SITE_URL}/assets/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preload" href="/assets/fonts/barlow-condensed-latin-900-italic.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/geist-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/windermere.webp" as="image">
 <script type="application/ld+json">{json.dumps(schema, ensure_ascii=False)}</script>
-<style>
-@font-face{{font-family:"Barlow Condensed";font-style:italic;font-weight:800;font-display:swap;src:url(/assets/fonts/barlow-condensed-latin-800-italic.woff2) format("woff2")}}
-@font-face{{font-family:"Barlow Condensed";font-style:italic;font-weight:900;font-display:swap;src:url(/assets/fonts/barlow-condensed-latin-900-italic.woff2) format("woff2")}}
-@font-face{{font-family:Inter;font-style:normal;font-weight:400;font-display:swap;src:url(/assets/fonts/inter-latin-400-normal.woff2) format("woff2")}}
-@font-face{{font-family:Inter;font-style:normal;font-weight:600;font-display:swap;src:url(/assets/fonts/inter-latin-600-normal.woff2) format("woff2")}}
-@font-face{{font-family:Inter;font-style:normal;font-weight:700;font-display:swap;src:url(/assets/fonts/inter-latin-700-normal.woff2) format("woff2")}}
-:root{{--black:#0b0b0c;--card:#17171a;--line-d:#2a2a2e;--ink:#1d1d1f;--gray:#6e6e73;--gray-d:#a1a1a6;--line:#d2d2d7;--light:#f5f5f7;--orange:#ff6b1a;--orange-ink:#b4531a;--disp:"Barlow Condensed","Arial Narrow",Impact,sans-serif;--sans:Inter,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;--wrap:1160px}}
-*,*::before,*::after{{box-sizing:border-box}}
-html{{scroll-behavior:smooth;-webkit-text-size-adjust:100%}}
-body{{margin:0;background:var(--black);color:#f5f5f7;font-family:var(--sans);font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}}
-img{{max-width:100%;height:auto;display:block}}
-a{{color:inherit}}
-button{{font:inherit}}
-:focus-visible{{outline:2px solid var(--orange);outline-offset:3px;border-radius:6px}}
-.wrap{{max-width:var(--wrap);margin:0 auto;padding:0 20px}}
-.skip{{position:absolute;left:-9999px;top:8px;z-index:50;background:#fff;color:#000;padding:10px 16px;border-radius:8px}}
-.skip:focus{{left:12px}}
-.disp{{font-family:var(--disp);font-style:italic;font-weight:900;text-transform:uppercase;letter-spacing:-.005em;line-height:.88;margin:0}}
-.h2{{font-size:clamp(48px,7.4vw,100px);white-space:pre-line}}
-.lede{{font-size:clamp(17px,1.8vw,20px);line-height:1.5;max-width:600px;margin:22px 0 0}}
-.sec{{padding:clamp(88px,11vw,136px) 0}}
-.light{{background:#fff;color:var(--ink)}}
-.light .lede{{color:var(--gray)}}
-.dark .lede{{color:var(--gray-d)}}
-.btn{{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:54px;padding:0 28px;border-radius:999px;font-size:17px;font-weight:700;text-decoration:none;border:1px solid transparent;transition:transform .15s ease,background-color .2s ease,border-color .2s ease}}
-.btn:active{{transform:scale(.98)}}
-.btn-o{{background:var(--orange);color:var(--black)}}
-.btn-o:hover{{background:#ff8238}}
-.btn-ghost{{border-color:rgba(255,255,255,.32);color:#fff;font-weight:600}}
-.btn-ghost:hover{{border-color:#fff}}
-.btn-ink{{background:var(--black);color:#fff}}
-.btn-ink:hover{{background:#262628}}
-/* nav */
-.nav{{position:sticky;top:0;z-index:20;background:rgba(11,11,12,.82);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(255,255,255,.08)}}
-.nav .wrap{{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:64px}}
-.brand{{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff}}
-.brand img{{width:40px;height:40px;border-radius:50%}}
-.brand-name{{display:flex;flex-direction:column;line-height:1}}
-.brand-name b{{font-family:var(--disp);font-style:italic;font-weight:800;font-size:22px;letter-spacing:.04em}}
-.brand-name small{{font-size:9px;font-weight:600;letter-spacing:.42em;color:var(--orange);margin-top:3px}}
-.links{{display:flex;gap:26px}}
-.links a{{font-size:14px;color:#d2d2d7;text-decoration:none}}
-.links a:hover{{color:#fff}}
-.nav-r{{display:flex;align-items:center;gap:10px}}
-.lang{{display:flex;padding:3px;border-radius:999px;background:rgba(255,255,255,.12)}}
-.lang button{{min-height:32px;min-width:42px;padding:0 12px;border:0;border-radius:999px;background:transparent;color:#d2d2d7;font-size:12px;font-weight:700;cursor:pointer}}
-.lang button[aria-pressed="true"]{{background:#fff;color:var(--black)}}
-.nav .btn{{min-height:38px;padding:0 16px;font-size:14px}}
-@media (max-width:900px){{.links{{display:none}}}}
-@media (max-width:420px){{.nav .btn-o{{display:none}}}}
-/* hero */
-.hero{{padding:clamp(72px,9vw,104px) 0 0;text-align:center;overflow:hidden}}
-.kicker{{display:inline-flex;align-items:center;gap:8px;margin:0 0 22px;color:var(--orange);font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}}
-.hero h1{{font-size:clamp(60px,8.6vw,124px);color:#fff}}
-.hero h1 span{{display:block}}
-.hero h1 .o{{color:var(--orange)}}
-.swoosh{{display:block;width:min(560px,70vw);height:auto;margin:10px auto 0}}
-.hero .lede{{margin:26px auto 0;color:var(--gray-d);max-width:640px}}
-.ctas{{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-top:34px}}
-.hero-photo{{position:relative;max-width:1040px;margin:64px auto 0;border-radius:32px 32px 0 0;overflow:hidden;background:var(--card)}}
-.hero-photo img{{width:100%;aspect-ratio:16/9;object-fit:cover;object-position:62% 55%}}
-@media (max-width:640px){{.hero-photo{{border-radius:24px 24px 0 0}}.hero-photo img{{aspect-ratio:4/3}}}}
-.hero-chip{{position:absolute;left:20px;bottom:20px;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;background:rgba(11,11,12,.78);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff;font-size:14px;font-weight:600}}
-.hero-chip svg{{color:var(--orange)}}
-/* facts */
-.facts{{background:#151517;border-top:1px solid rgba(255,255,255,.06);padding:56px 0}}
-.facts .wrap{{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:32px}}
-.fact b{{display:block;font-family:var(--disp);font-style:italic;font-weight:800;font-size:40px;line-height:1;text-transform:uppercase;color:var(--orange)}}
-.fact span{{display:block;margin-top:8px;font-size:15px;color:var(--gray-d)}}
-/* quote */
-.chips{{display:flex;flex-wrap:wrap;gap:10px;margin-top:44px}}
-.chip{{min-height:46px;padding:0 20px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:15px;font-weight:500;cursor:pointer;transition:background-color .15s,border-color .15s}}
-.chip:hover{{border-color:var(--ink)}}
-.chip[aria-pressed="true"]{{background:var(--orange);border-color:var(--orange);color:var(--black);font-weight:700}}
-.quote{{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:20px;margin-top:28px}}
-.mv{{border-radius:28px;background:var(--black);color:#f5f5f7;padding:clamp(28px,4vw,44px);display:flex;flex-direction:column;gap:18px}}
-.mv h3{{font-family:var(--disp);font-style:italic;font-weight:800;text-transform:uppercase;font-size:clamp(38px,4.4vw,54px);line-height:.95;margin:0;color:#fff}}
-.mv p{{margin:0;font-size:18px;color:#c7c7cc}}
-.mv ul{{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:14px}}
-.mv li{{display:flex;gap:12px;align-items:flex-start;font-size:16px}}
-.mv li svg{{flex:none;margin-top:2px}}
-.form{{border-radius:28px;background:var(--light);padding:clamp(28px,4vw,44px);display:flex;flex-direction:column;gap:16px}}
-.form h3{{margin:0 0 4px;font-size:15px;font-weight:700;color:var(--gray)}}
-.row{{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}}
-.form label{{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#424245}}
-.form input{{min-height:50px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font:400 16px var(--sans);width:100%}}
-.form input:focus{{border-color:var(--ink);outline:none}}
-.form input::placeholder{{color:#8e8e93}}
-.form .btn{{margin-top:6px;border-radius:14px;min-height:58px}}
-.note{{margin:0;font-size:13px;color:var(--gray)}}
-/* services */
-.grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:20px;margin-top:56px}}
-.svc{{border-radius:28px;background:var(--card);border:1px solid var(--line-d);overflow:hidden;display:flex;flex-direction:column}}
-.svc img{{width:100%;aspect-ratio:3/2;object-fit:cover}}
-.svc-body{{padding:28px 30px 32px;display:flex;flex-direction:column;gap:12px}}
-.svc h3,.svc-o h3{{font-family:var(--disp);font-style:italic;font-weight:800;text-transform:uppercase;font-size:36px;line-height:1;margin:0}}
-.svc h3{{color:#fff}}
-.svc p{{margin:0;font-size:16px;color:var(--gray-d)}}
-.tags{{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}}
-.tags li{{padding:6px 12px;border-radius:999px;background:rgba(255,107,26,.13);color:#ff9a5c;font-size:13px;font-weight:600}}
-.svc-o{{border-radius:28px;background:var(--orange);color:var(--black);padding:40px 30px 32px;display:flex;flex-direction:column;justify-content:space-between;gap:32px}}
-.svc-o p{{margin:0;font-size:16px;color:#1d1d1f}}
-.svc-o .tags li{{background:rgba(11,11,12,.12);color:var(--black)}}
-.svc-o .also{{margin-top:16px;padding-top:16px;border-top:1px solid rgba(11,11,12,.22);font-size:14px;font-weight:600}}
-/* how */
-.steps{{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:48px;margin-top:64px}}
-.step{{border-top:3px solid var(--black);padding-top:24px}}
-.step b{{display:block;font-family:var(--disp);font-style:italic;font-weight:900;font-size:60px;line-height:1;color:var(--orange-ink)}}
-.step h3{{margin:12px 0 8px;font-size:24px;letter-spacing:-.02em}}
-.step p{{margin:0;color:var(--gray)}}
-/* instagram */
-.ig{{border-top:1px solid #ececf0}}
-.ig .wrap{{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:48px}}
-.ig-text{{flex:1 1 420px}}
-.rings{{flex:1 1 420px;display:flex;flex-wrap:wrap;justify-content:center;gap:28px}}
-.ring{{display:flex;flex-direction:column;align-items:center;gap:12px;text-decoration:none;color:var(--ink);font-size:15px;font-weight:600}}
-.ring span:first-child{{width:112px;height:112px;border-radius:50%;padding:4px;background:conic-gradient(from 200deg,#ff6b1a,#ffb347,#ff6b1a);transition:transform .2s ease}}
-.ring:hover span:first-child{{transform:scale(1.05)}}
-.ring img,.ring i{{width:100%;height:100%;border-radius:50%;border:3px solid #fff;object-fit:cover;background:var(--black)}}
-.ring i{{display:flex;align-items:center;justify-content:center}}
-.ig .btn{{margin-top:30px;border-color:var(--black);color:var(--black);font-weight:600}}
-.ig .btn:hover{{background:var(--black);color:#fff}}
-/* language band */
-.band{{background:var(--orange);color:var(--black);padding:clamp(88px,10vw,120px) 0}}
-.band .wrap{{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:40px}}
-.band .h2{{font-size:clamp(52px,8vw,116px)}}
-.band .lede{{color:#1d1d1f}}
-/* faq */
-.faq{{max-width:860px}}
-.faq-list{{margin-top:48px;border-bottom:1px solid var(--line)}}
-.faq-item{{border-top:1px solid var(--line)}}
-.faq-item summary{{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:24px;padding:26px 0;font-size:20px;font-weight:600;letter-spacing:-.015em}}
-.faq-item summary::-webkit-details-marker{{display:none}}
-.faq-item summary::after{{content:"";flex:none;width:12px;height:12px;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(45deg) translateY(-3px);transition:transform .2s ease}}
-.faq-item[open] summary::after{{transform:rotate(-135deg) translateY(-3px)}}
-.faq-item p{{margin:-6px 0 26px;color:var(--gray);max-width:720px}}
-/* end */
-.end{{text-align:center}}
-.end img{{width:112px;height:112px;border-radius:50%;margin:0 auto 32px}}
-.end h2{{font-size:clamp(62px,10.5vw,150px);color:#fff}}
-.end h2 span{{display:block}}
-.end h2 .o{{color:var(--orange)}}
-.end .lede{{margin:26px auto 0;color:var(--gray-d)}}
-footer{{padding:0 0 calc(40px + env(safe-area-inset-bottom))}}
-footer .wrap{{border-top:1px solid var(--line-d);padding-top:24px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;font-size:13px;color:var(--gray-d)}}
-footer nav{{display:flex;flex-wrap:wrap;gap:18px}}
-footer a{{color:#d2d2d7;text-decoration:none}}
-footer a:hover{{color:#fff}}
-/* floating WhatsApp */
-.fab{{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:30;width:60px;height:60px;border-radius:50%;background:var(--orange);color:var(--black);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;transform:translateY(16px) scale(.9);pointer-events:none;transition:opacity .25s ease,transform .25s ease}}
-.fab.show{{opacity:1;transform:none;pointer-events:auto}}
-.fab svg{{width:28px;height:28px}}
-/* reveal */
-.js .reveal{{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}}
-.js .reveal.in{{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){{html{{scroll-behavior:auto}}.js .reveal{{opacity:1;transform:none;transition:none}}.fab{{transition:none}}}}
-</style>
 <script>document.documentElement.classList.add("js")</script>
+<style>
+{font_faces(False)}
+{CSS}
+</style>
 </head>
-<body>
-<a class="skip" href="#quote">Skip to quote</a>
+<body>'''
 
-<header class="nav">
-<div class="wrap">
-<a class="brand" href="#top" aria-label="Shammah Moving">
-<img src="/assets/logo-160.png" alt="" width="40" height="40">
-<span class="brand-name"><b>SHAMMAH</b><small>MOVING</small></span>
-</a>
-<nav class="links" aria-label="Main">
-<a href="#quote" data-i18n="navQuote">{e("navQuote")}</a>
-<a href="#services" data-i18n="navServices">{e("navServices")}</a>
-<a href="#how" data-i18n="navHow">{e("navHow")}</a>
-<a href="#faq" data-i18n="navFaq">{e("navFaq")}</a>
-</nav>
-<div class="nav-r">
-<div class="lang" role="group" aria-label="{e("langAria")}" data-i18n-aria="langAria">
-<button type="button" data-lang="en" aria-pressed="true">EN</button>
-<button type="button" data-lang="pt" aria-pressed="false">PT</button>
-</div>
-<a class="btn btn-o js-wa" href="https://wa.me/{WA}" target="_blank" rel="noopener">WhatsApp</a>
-</div>
-</div>
-</header>
+site = HEAD + body + '<script src="/assets/sb.js"></script>\n<script>' + js + "</script>\n</body>\n</html>\n"
+(HERE / "index.html").write_text(site, encoding="utf-8")
 
-<main id="top">
-<section class="hero" id="hero">
-<div class="wrap">
-<p class="kicker">{ICON_PIN}<span data-i18n="heroKicker">{e("heroKicker")}</span></p>
-<h1 class="disp"><span data-i18n="heroA">{e("heroA")}</span><span class="o" data-i18n="heroB">{e("heroB")}</span></h1>
-<svg class="swoosh" viewBox="0 0 600 34" aria-hidden="true"><path d="M6 28C140 10 330 4 594 6c-3 2-4 4-5 6C360 12 170 18 10 34z" fill="#ff6b1a"/></svg>
-<p class="lede" data-i18n="heroSub">{e("heroSub")}</p>
-<div class="ctas">
-<a class="btn btn-o js-wa" href="https://wa.me/{WA}" target="_blank" rel="noopener">{ICON_WA}<span data-i18n="ctaWa">{e("ctaWa")}</span></a>
-<a class="btn btn-ghost" href="#quote" data-i18n="ctaQuote">{e("ctaQuote")}</a>
-</div>
-<figure class="hero-photo">
-<img src="/assets/windermere.webp" width="1600" height="1145" alt="{e("heroAlt")}" data-i18n-alt="heroAlt" fetchpriority="high" decoding="async">
-<figcaption class="hero-chip">{ICON_PIN}Windermere, FL</figcaption>
-</figure>
-</div>
-</section>
-
-<section class="facts" aria-label="Shammah Moving">
-<div class="wrap">
-<div class="fact"><b data-i18n="f1a">{e("f1a")}</b><span data-i18n="f1b">{e("f1b")}</span></div>
-<div class="fact"><b data-i18n="f2a">{e("f2a")}</b><span data-i18n="f2b">{e("f2b")}</span></div>
-<div class="fact"><b data-i18n="f3a">{e("f3a")}</b><span data-i18n="f3b">{e("f3b")}</span></div>
-<div class="fact"><b data-i18n="f4a">{e("f4a")}</b><span data-i18n="f4b">{e("f4b")}</span></div>
-</div>
-</section>
-
-<section class="sec light" id="quote">
-<div class="wrap">
-<h2 class="disp h2 reveal" data-i18n="qTitle">{e("qTitle")}</h2>
-<p class="lede" data-i18n="qSub">{e("qSub")}</p>
-<div class="chips" id="moves" role="group" aria-label="{e("qGroup")}" data-i18n-aria="qGroup">
-{move_buttons()}
-</div>
-<div class="quote">
-<div class="mv" aria-live="polite">
-<h3 id="mvTitle">{html.escape(first["title"])}</h3>
-<p id="mvLine">{html.escape(first["line"])}</p>
-<ul id="mvInc">{first_inc}</ul>
-</div>
-<form class="form" id="qform" novalidate>
-<h3 data-i18n="qDetails">{e("qDetails")}</h3>
-<div class="row">
-<label><span data-i18n="lFrom">{e("lFrom")}</span><input type="text" name="from" autocomplete="address-level2" placeholder="{e("phFrom")}" data-i18n-ph="phFrom"></label>
-<label><span data-i18n="lTo">{e("lTo")}</span><input type="text" name="to" placeholder="{e("phTo")}" data-i18n-ph="phTo"></label>
-</div>
-<label><span data-i18n="lDate">{e("lDate")}</span><input type="date" name="date"></label>
-<label><span data-i18n="lDetails">{e("lDetails")}</span><input type="text" name="details" id="fDetails" placeholder="{html.escape(first["ph"], quote=True)}"></label>
-<a class="btn btn-ink" id="waMove" href="https://wa.me/{WA}" target="_blank" rel="noopener">{ICON_WA}<span data-i18n="sendWa">{e("sendWa")}</span></a>
-<p class="note" data-i18n="sendNote">{e("sendNote")}</p>
-</form>
-</div>
-</div>
-</section>
-
-<section class="sec dark" id="services">
-<div class="wrap">
-<h2 class="disp h2 reveal" data-i18n="svcTitle">{e("svcTitle")}</h2>
-<p class="lede" data-i18n="svcSub">{e("svcSub")}</p>
-<div class="grid">
-{service_card("local", "local.webp")}
-{service_card("interstate", "interstate.webp")}
-{service_card("intl", "intl.webp")}
-{service_card("packing", "packing.webp")}
-{service_card("freight", "freight.webp")}
-<article class="svc-o reveal">
-<svg width="56" height="56" viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#0b0b0c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16L20 7l15 9v18H5z"/><path d="M11 34V20h18v14M11 25h18M11 30h18"/></svg>
-<div>
-<h3 data-i18n="svc_storage_t">{e("svc_storage_t")}</h3>
-<p style="margin-top:12px" data-i18n="svc_storage_d">{e("svc_storage_d")}</p>
-<ul class="tags" style="margin-top:14px">{storage_tags}</ul>
-<p class="also" data-i18n="svcAlso">{e("svcAlso")}</p>
-</div>
-</article>
-</div>
-</div>
-</section>
-
-<section class="sec light" id="how">
-<div class="wrap">
-<h2 class="disp h2 reveal" data-i18n="howTitle">{e("howTitle")}</h2>
-<div class="steps">
-<div class="step reveal"><b>01</b><h3 data-i18n="h1t">{e("h1t")}</h3><p data-i18n="h1d">{e("h1d")}</p></div>
-<div class="step reveal"><b>02</b><h3 data-i18n="h2t">{e("h2t")}</h3><p data-i18n="h2d">{e("h2d")}</p></div>
-<div class="step reveal"><b>03</b><h3 data-i18n="h3t">{e("h3t")}</h3><p data-i18n="h3d">{e("h3d")}</p></div>
-</div>
-</div>
-</section>
-
-<section class="sec light ig" id="instagram">
-<div class="wrap">
-<div class="ig-text">
-<h2 class="disp h2 reveal" data-i18n="igTitle">{e("igTitle")}</h2>
-<p class="lede" data-i18n="igSub">{e("igSub")}</p>
-<a class="btn" href="{IG}" target="_blank" rel="noopener">{ICON_IG}<span data-i18n="igCta">{e("igCta")}</span></a>
-</div>
-<div class="rings">
-<a class="ring" href="{IG}" target="_blank" rel="noopener"><span><img src="/assets/local.webp" alt="" width="104" height="104" loading="lazy"></span><span data-i18n="ig1">{e("ig1")}</span></a>
-<a class="ring" href="{IG}" target="_blank" rel="noopener"><span><img src="/assets/freight.webp" alt="" width="104" height="104" loading="lazy"></span><span data-i18n="ig2">{e("ig2")}</span></a>
-<a class="ring" href="{IG}" target="_blank" rel="noopener"><span><img src="/assets/packing.webp" alt="" width="104" height="104" loading="lazy"></span><span data-i18n="ig3">{e("ig3")}</span></a>
-<a class="ring" href="{IG}" target="_blank" rel="noopener"><span><i><svg width="40" height="40" viewBox="0 0 36 28" aria-hidden="true"><path d="M0 28V16C0 7 5 1.5 14 0l1.5 4C10 5.6 7.6 9 7.5 13H14v15zm20 0V16c0-9 5-14.5 14-16l1.5 4c-5.5 1.6-7.9 5-8 9H34v15z" fill="#ff6b1a"/></svg></i></span><span data-i18n="ig4">{e("ig4")}</span></a>
-</div>
-</div>
-</section>
-
-<section class="band" aria-labelledby="langTitle">
-<div class="wrap">
-<div style="flex:999 1 520px;min-width:0">
-<h2 class="disp h2" id="langTitle" data-i18n="langTitle">{e("langTitle")}</h2>
-<p class="lede" data-i18n="langSub">{e("langSub")}</p>
-</div>
-<a class="btn btn-ink js-wa" href="https://wa.me/{WA}" target="_blank" rel="noopener" data-i18n="langCta">{e("langCta")}</a>
-</div>
-</section>
-
-<section class="sec light" id="faq">
-<div class="wrap faq">
-<h2 class="disp h2 reveal" data-i18n="faqTitle">{e("faqTitle")}</h2>
-<div class="faq-list">
-{faq_html}
-</div>
-</div>
-</section>
-
-<section class="sec dark end">
-<div class="wrap">
-<img src="/assets/logo.png" alt="Shammah Moving" width="112" height="112" loading="lazy">
-<h2 class="disp reveal"><span data-i18n="endA">{e("endA")}</span><span class="o" data-i18n="endB">{e("endB")}</span></h2>
-<p class="lede" data-i18n="endSub">{e("endSub")}</p>
-<div class="ctas">
-<a class="btn btn-o js-wa" href="https://wa.me/{WA}" target="_blank" rel="noopener">{ICON_WA}WhatsApp</a>
-<a class="btn btn-ghost" href="tel:{PHONE}"><span data-i18n="call">{e("call")}</span>&nbsp;{PHONE_LABEL}</a>
-<a class="btn btn-ghost" href="{IG}" target="_blank" rel="noopener">{ICON_IG}@shammahmoving</a>
-</div>
-</div>
-</section>
-</main>
-
-<footer>
-<div class="wrap">
-<span data-i18n="footRights">{e("footRights")}</span>
-<nav aria-label="Contact">
-<a href="mailto:{EMAIL}">{EMAIL}</a>
-<a href="tel:{PHONE}">{PHONE_LABEL}</a>
-<a href="{IG}" target="_blank" rel="noopener">Instagram</a>
-<a class="js-wa" href="https://wa.me/{WA}" target="_blank" rel="noopener">WhatsApp</a>
-</nav>
-</div>
-</footer>
-
-<a class="fab js-wa" id="fab" href="https://wa.me/{WA}" target="_blank" rel="noopener" aria-label="{e("fabAria")}" data-i18n-aria="fabAria">{ICON_WA}</a>
-
-<script>
-(function () {{
-  var WA = "{WA}";
-  var T = {json.dumps(T, ensure_ascii=False)};
-  var MOVES = {json.dumps(MOVES, ensure_ascii=False)};
-  var CHECK = {json.dumps(CHECK)};
-  var $ = function (s, r) {{ return (r || document).querySelector(s); }};
-  var $$ = function (s, r) {{ return Array.prototype.slice.call((r || document).querySelectorAll(s)); }};
-  var state = {{ lang: "en", move: "house" }};
-  var form = $("#qform");
-
-  function wa(text) {{ return "https://wa.me/" + WA + "?text=" + encodeURIComponent(text); }}
-  function esc(s) {{ return String(s).replace(/[&<>"]/g, function (c) {{ return {{"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}}[c]; }}); }}
-  function cur() {{
-    var list = MOVES[state.lang];
-    for (var i = 0; i < list.length; i++) if (list[i].id === state.move) return list[i];
-    return list[0];
-  }}
-  function fmtDate(v) {{
-    var p = v.split("-");
-    if (p.length !== 3) return v;
-    return state.lang === "pt" ? p[2] + "/" + p[1] + "/" + p[0] : p[1] + "/" + p[2] + "/" + p[0];
-  }}
-
-  function renderMove() {{
-    var m = cur(), t = T[state.lang];
-    $$("#moves .chip").forEach(function (b) {{
-      var mm = MOVES[state.lang].filter(function (x) {{ return x.id === b.dataset.move; }})[0];
-      b.textContent = mm.label;
-      b.setAttribute("aria-pressed", b.dataset.move === state.move ? "true" : "false");
-    }});
-    $("#mvTitle").textContent = m.title;
-    $("#mvLine").textContent = m.line;
-    $("#mvInc").innerHTML = m.inc.map(function (x) {{ return "<li>" + CHECK + "<span>" + esc(x) + "</span></li>"; }}).join("");
-    $("#fDetails").placeholder = m.ph;
-    updateQuote();
-  }}
-
-  function updateQuote() {{
-    var t = T[state.lang], m = cur(), f = form.elements;
-    var lines = [t.msgHi, t.msgType + ": " + m.title];
-    if (f.from.value.trim()) lines.push(t.msgFrom + ": " + f.from.value.trim());
-    if (f.to.value.trim()) lines.push(t.msgTo + ": " + f.to.value.trim());
-    if (f.date.value) lines.push(t.msgDate + ": " + fmtDate(f.date.value));
-    if (f.details.value.trim()) lines.push(t.msgDet + ": " + f.details.value.trim());
-    $("#waMove").href = wa(lines.join("\\n"));
-  }}
-
-  function setLang(l) {{
-    state.lang = l === "pt" ? "pt" : "en";
-    var t = T[state.lang];
-    document.documentElement.lang = state.lang === "pt" ? "pt-BR" : "en";
-    document.title = t.metaTitle;
-    var md = $('meta[name="description"]'); if (md) md.setAttribute("content", t.metaDesc);
-    $$("[data-i18n]").forEach(function (el) {{ var v = t[el.dataset.i18n]; if (v != null) el.textContent = v; }});
-    $$("[data-i18n-ph]").forEach(function (el) {{ el.placeholder = t[el.dataset.i18nPh]; }});
-    $$("[data-i18n-alt]").forEach(function (el) {{ el.alt = t[el.dataset.i18nAlt]; }});
-    $$("[data-i18n-aria]").forEach(function (el) {{ el.setAttribute("aria-label", t[el.dataset.i18nAria]); }});
-    $$(".lang button").forEach(function (b) {{ b.setAttribute("aria-pressed", b.dataset.lang === state.lang ? "true" : "false"); }});
-    $$(".js-wa").forEach(function (a) {{ a.href = wa(t.waGeneral); }});
-    renderMove();
-    try {{ localStorage.setItem("shammah-lang", state.lang); }} catch (e) {{}}
-  }}
-
-  $$(".lang button").forEach(function (b) {{ b.addEventListener("click", function () {{ setLang(b.dataset.lang); }}); }});
-  $$("#moves .chip").forEach(function (b) {{
-    b.addEventListener("click", function () {{ state.move = b.dataset.move; renderMove(); }});
-  }});
-  form.addEventListener("input", updateQuote);
-  form.addEventListener("submit", function (e) {{ e.preventDefault(); }});
-
-  var initial = "en";
-  try {{
-    var q = new URLSearchParams(location.search).get("lang");
-    if (q === "pt" || q === "en") initial = q;
-    else if (localStorage.getItem("shammah-lang")) initial = localStorage.getItem("shammah-lang");
-  }} catch (e) {{}}
-  setLang(initial);
-
-  var fab = $("#fab");
-  if ("IntersectionObserver" in window) {{
-    new IntersectionObserver(function (en) {{ fab.classList.toggle("show", !en[0].isIntersecting); }}, {{ threshold: 0.15 }}).observe($("#hero"));
-    var io = new IntersectionObserver(function (en) {{
-      en.forEach(function (x) {{ if (x.isIntersecting) {{ x.target.classList.add("in"); io.unobserve(x.target); }} }});
-    }}, {{ rootMargin: "0px 0px -8% 0px" }});
-    $$(".reveal").forEach(function (el) {{ io.observe(el); }});
-  }} else {{
-    fab.classList.add("show");
-    $$(".reveal").forEach(function (el) {{ el.classList.add("in"); }});
-  }}
-}})();
-</script>
-</body>
-</html>
-'''
-
-out = Path(__file__).with_name("index.html")
-out.write_text(page, encoding="utf-8")
-print("wrote", out, len(page), "bytes")
+preview = (
+    '<title>Shammah Moving v3</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
+    f"<style>\n{font_faces(True)}\n{CSS}\n</style>\n" + body + "<script>" + (HERE / "assets/sb.js").read_text(encoding="utf-8") + "</script>\n<script>" + js + "</script>\n"
+)
+(HERE / "preview.html").write_text(preview, encoding="utf-8")
+print("index.html", len(site), "bytes · preview.html", len(preview), "bytes")
