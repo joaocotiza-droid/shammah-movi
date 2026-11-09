@@ -1,7 +1,7 @@
 """Shammah Moving, version 3 (light layout, brand orange and black).
 
 Run:  python3 build.py
-Writes index.html (the real site, for Vercel) and preview.html (same page, for the Claude preview).
+Writes index.html (the real site, for Vercel).
 Text lives in content.py (shared with v1 and v2) plus the v3 additions below.
 The loading-truck illustration lives in truck.py (shared with v2).
 """
@@ -87,17 +87,17 @@ BK = {
         "metaTitle": "Shammah Moving | Book Your Move in Windermere & Orlando, FL",
         "metaDesc": "Book your move online with Shammah Moving. Local, interstate and international moving out of Windermere, Florida, plus packing, freight, storage and pianos. We speak English and Portuguese.",
         "navQuote": "Book a move", "ctaQuote": "Book a date",
-        "heroSub": "Local, interstate and international moves out of Windermere, Florida. Pick your date online and we hold the crew for you, or message us on WhatsApp.",
-        "qTitle": "Book your move", "qH3": "Pick a date. We hold the crew.",
-        "qSub": "Choose your type of move, pick a day that's open and tell us where you're going. We hold your date right away and confirm it with you.",
-        "st1": "Move type", "st2": "Date", "st3": "Details", "st4": "Booked",
+        "heroSub": "Local, interstate and international moves out of Windermere, Florida. Pick your date, send the details and we reply on WhatsApp with your quote.",
+        "qTitle": "Book your move", "qH3": "Pick a date. We confirm on WhatsApp.",
+        "qSub": "Choose your type of move, pick the day you prefer and tell us where you're going. Your request goes straight to our WhatsApp and we reply there with the quote.",
+        "st1": "Move type", "st2": "Date", "st3": "Details", "st4": "Sent",
         "quoteThis": "Book this move",
         "sendWa": "Ask on WhatsApp first",
         "sendNote": "Not sure about the details yet? Message us what you're moving and we'll come back with a quote.",
-        "h1t": "Pick your date", "h1d": "Choose the type of move and a day that's open. Add the addresses and a rough size.",
-        "h2t": "We confirm", "h2d": "We review the details, size the crew and the truck, and confirm your date with a written estimate.",
-        "endSub": "Book your date today. We'll take it from there.",
-        "bkDate": "Choose a date", "bkDateHint": "Only days with a free crew can be picked.",
+        "h1t": "Pick your date", "h1d": "Choose the type of move and the day you prefer. Add the addresses and a rough size.",
+        "h2t": "We confirm", "h2d": "We review the details on WhatsApp, size the crew and the truck, and confirm your date with a written estimate.",
+        "endSub": "Send your request today. We'll take it from there.",
+        "bkDate": "Choose a date", "bkDateHint": "Pick the day you prefer. We confirm it on WhatsApp.",
         "calPrev": "Previous month", "calNext": "Next month",
         "legOpen": "Open", "legLast": "Last spot", "legFull": "Full", "legClosed": "Closed",
         "calLoad": "Loading dates…",
@@ -109,32 +109,32 @@ BK = {
         "lEmail": "E-mail (optional)", "phEmail": "you@email.com",
         "lNotes": "Anything we should know? (optional)", "phNotes": "Stairs, elevator, piano, fragile items…",
         "sumDate": "Date", "sumArrive": "Arrival", "sumPick": "Pick a date",
-        "bookBtn": "Hold my date", "sending": "Sending…",
+        "bookBtn": "Send request on WhatsApp", "sending": "Opening WhatsApp…",
         "vDate": "Pick a date for your move.", "vWin": "Pick morning or afternoon.",
         "vName": "Please enter your name.", "vPhone": "Check your phone number, with area code.",
-        "okPending": "Request received.", "okConfirmed": "You're booked.",
-        "okSubPending": "We're preparing your quote for {d}. You'll get it on WhatsApp with the details and the price. The date is only reserved once you accept.",
-        "okSubConfirmed": "Your move is confirmed for {d}. See you then.",
-        "okCode": "Booking code", "okType": "Move", "okDate": "Date", "okArrive": "Arrival",
-        "okManage": "View or cancel booking", "okWa": "Send details on WhatsApp", "okAgain": "Book another move",
-        "waBook": "Hi Shammah! I just booked a move on your site: {t} on {d}. Code {c}.",
-        "staffLogin": "Team login",
+        "okPending": "Your request is ready.",
+        "okSubPending": "Send it on WhatsApp so we can review {d} and reply with your quote. If WhatsApp didn't open, tap the button below.",
+        "okType": "Move", "okDate": "Date", "okArrive": "Arrival",
+        "okWa": "Send on WhatsApp", "okAgain": "Request another move",
+        "rqHead": "New move request from the website", "rqMove": "Move", "rqDate": "Preferred date", "rqArrive": "Arrival",
+        "rqName": "Name", "rqPhone": "Phone", "rqEmail": "E-mail", "rqFrom": "From", "rqTo": "To", "rqSize": "Size",
+        "rqItems": "Items", "rqNotes": "Notes", "rqLang": "Site language", "rqLangV": "English",
     },
     "pt": {
         "metaTitle": "Shammah Moving | Agende sua mudança em Windermere e Orlando, FL",
         "metaDesc": "Agende sua mudança online com a Shammah Moving. Mudanças locais, interestaduais e internacionais saindo de Windermere, Flórida, além de embalagem, fretes, armazenagem e pianos. Atendimento em português.",
         "navQuote": "Agendar", "ctaQuote": "Agendar data",
-        "heroSub": "Mudanças locais, interestaduais e internacionais saindo de Windermere, na Flórida. Escolha a data online e a gente reserva a equipe, ou chame no WhatsApp.",
-        "qTitle": "Agende sua mudança", "qH3": "Escolha a data. A gente reserva a equipe.",
-        "qSub": "Escolha o tipo de mudança, um dia livre e conte para onde você vai. Reservamos a data na hora e confirmamos com você.",
-        "st1": "Tipo", "st2": "Data", "st3": "Dados", "st4": "Pronto",
+        "heroSub": "Mudanças locais, interestaduais e internacionais saindo de Windermere, na Flórida. Escolha a data, envie os detalhes e a gente responde no WhatsApp com o orçamento.",
+        "qTitle": "Agende sua mudança", "qH3": "Escolha a data. A gente confirma no WhatsApp.",
+        "qSub": "Escolha o tipo de mudança, o dia de sua preferência e conte para onde você vai. O pedido cai direto no nosso WhatsApp e a gente responde por lá com o orçamento.",
+        "st1": "Tipo", "st2": "Data", "st3": "Dados", "st4": "Enviado",
         "quoteThis": "Agendar esta mudança",
         "sendWa": "Perguntar no WhatsApp antes",
         "sendNote": "Ainda não tem todos os detalhes? Mande no WhatsApp o que você vai mudar e a gente volta com o orçamento.",
-        "h1t": "Escolha a data", "h1d": "Escolha o tipo de mudança e um dia livre. Coloque os endereços e um tamanho aproximado.",
-        "h2t": "A gente confirma", "h2d": "Vemos os detalhes, definimos equipe e caminhão e confirmamos sua data com um orçamento por escrito.",
-        "endSub": "Reserve sua data hoje mesmo. A gente cuida do resto.",
-        "bkDate": "Escolha a data", "bkDateHint": "Só dá para escolher dias com equipe livre.",
+        "h1t": "Escolha a data", "h1d": "Escolha o tipo de mudança e o dia de sua preferência. Coloque os endereços e um tamanho aproximado.",
+        "h2t": "A gente confirma", "h2d": "Vemos os detalhes pelo WhatsApp, definimos equipe e caminhão e confirmamos sua data com um orçamento por escrito.",
+        "endSub": "Envie seu pedido hoje mesmo. A gente cuida do resto.",
+        "bkDate": "Escolha a data", "bkDateHint": "Escolha o dia de sua preferência. Confirmamos pelo WhatsApp.",
         "calPrev": "Mês anterior", "calNext": "Próximo mês",
         "legOpen": "Livre", "legLast": "Última vaga", "legFull": "Lotado", "legClosed": "Fechado",
         "calLoad": "Carregando datas…",
@@ -146,16 +146,16 @@ BK = {
         "lEmail": "E-mail (opcional)", "phEmail": "voce@email.com",
         "lNotes": "Algo que a gente deva saber? (opcional)", "phNotes": "Escada, elevador, piano, itens frágeis…",
         "sumDate": "Data", "sumArrive": "Chegada", "sumPick": "Escolha uma data",
-        "bookBtn": "Reservar minha data", "sending": "Enviando…",
+        "bookBtn": "Enviar pedido no WhatsApp", "sending": "Abrindo o WhatsApp…",
         "vDate": "Escolha a data da mudança.", "vWin": "Escolha manhã ou tarde.",
         "vName": "Digite seu nome.", "vPhone": "Confira o telefone, com DDD.",
-        "okPending": "Pedido recebido.", "okConfirmed": "Tudo certo.",
-        "okSubPending": "Estamos preparando seu orçamento para {d}. Você recebe no WhatsApp, com os detalhes e o valor. A data só fica reservada quando você aceitar.",
-        "okSubConfirmed": "Sua mudança está confirmada para {d}. Até lá.",
-        "okCode": "Código da reserva", "okType": "Mudança", "okDate": "Data", "okArrive": "Chegada",
-        "okManage": "Ver ou cancelar reserva", "okWa": "Enviar os dados no WhatsApp", "okAgain": "Agendar outra mudança",
-        "waBook": "Olá, Shammah! Acabei de agendar uma mudança no site: {t} em {d}. Código {c}.",
-        "staffLogin": "Área da equipe",
+        "okPending": "Seu pedido está pronto.",
+        "okSubPending": "Envie pelo WhatsApp para a gente analisar {d} e responder com o orçamento. Se o WhatsApp não abriu, toque no botão abaixo.",
+        "okType": "Mudança", "okDate": "Data", "okArrive": "Chegada",
+        "okWa": "Enviar no WhatsApp", "okAgain": "Pedir outra mudança",
+        "rqHead": "Novo pedido de mudança pelo site", "rqMove": "Mudança", "rqDate": "Data desejada", "rqArrive": "Chegada",
+        "rqName": "Nome", "rqPhone": "Telefone", "rqEmail": "E-mail", "rqFrom": "Saída", "rqTo": "Destino", "rqSize": "Tamanho",
+        "rqItems": "Itens", "rqNotes": "Observações", "rqLang": "Idioma do site", "rqLangV": "Português",
     },
 }
 for lang in ("en", "pt"):
@@ -792,12 +792,6 @@ BODY = r'''
 <div class="blk">
 <p class="lbl" data-i18n="bkDate">{{bkDate}}</p>
 <div class="cal" id="cal"><p class="cal-msg" data-i18n="calLoad">{{calLoad}}</p></div>
-<ul class="leg" aria-hidden="true">
-<li><i class="k open"></i><span data-i18n="legOpen">{{legOpen}}</span></li>
-<li><i class="k last"></i><span data-i18n="legLast">{{legLast}}</span></li>
-<li><i class="k full"></i><span data-i18n="legFull">{{legFull}}</span></li>
-<li><i class="k closed"></i><span data-i18n="legClosed">{{legClosed}}</span></li>
-</ul>
 <div class="win" id="win" hidden></div>
 </div>
 <div class="blk">
@@ -887,7 +881,6 @@ BODY = r'''
 <a href="tel:%%PHONE%%">%%PHONE_LABEL%%</a>
 <a href="%%IG%%" target="_blank" rel="noopener">Instagram</a>
 <a class="js-wa" href="https://wa.me/%%WA%%" target="_blank" rel="noopener">WhatsApp</a>
-<a href="admin.html" data-i18n="staffLogin">{{staffLogin}}</a>
 </nav>
 </div>
 </footer>
@@ -925,8 +918,17 @@ JS = r'''
   var SPAN = %%SPAN%%;
   var ARR = %%JARR%%, ARR_L = %%JARR_L%%, ARR_R = %%JARR_R%%, ICON_WA = %%JICON_WA%%;
   var TICK = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#121214" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  /* dates are business dates in Florida (America/New_York) */
+  var TZ = "America/New_York";
+  var DT = {
+    today: function () { return new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date()); },
+    addDays: function (ds, n) { var d = new Date(ds + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); },
+    dow: function (ds) { return new Date(ds + "T12:00:00Z").getUTCDay(); },
+    fmt: function (ds, lang, o) { return new Intl.DateTimeFormat(lang === "pt" ? "pt-BR" : "en-US", Object.assign({ timeZone: "UTC" }, o)).format(new Date(ds + "T12:00:00Z")); },
+    longDate: function (ds, lang) { return DT.fmt(ds, lang, { weekday: "long", month: "long", day: "numeric", year: "numeric" }); }
+  };
   var cfg = { wa: WA, morning: "8–10 AM", afternoon: "1–3 PM" };
-  var avail = {}, loading = true, failed = false, booked = null, busy = false, focusAfter = null;
+  var avail = {}, loading = true, failed = false, booked = null, focusAfter = null;
   function wa(text) { return "https://wa.me/" + cfg.wa + "?text=" + encodeURIComponent(text); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function tpl(s, o) { return s.replace(/\{(\w+)\}/g, function (m, k) { return o[k] != null ? o[k] : m; }); }
@@ -969,19 +971,14 @@ JS = r'''
   }
   function showErr(msg) { var el = $("#formErr"); el.textContent = msg || ""; el.hidden = !msg; }
 
-  /* availability comes from the database: free crews per day for the chosen type of move */
-  function loadAvail(force) {
+  /* the date is a preference: every day from tomorrow on, morning or afternoon. The team confirms availability on WhatsApp. */
+  function loadAvail() {
     var id = state.move;
-    if (avail[id] && !force) { loading = false; failed = false; afterAvail(); return; }
-    loading = true; failed = false; renderCal();
-    SB.rpc("get_availability", { p_type: id }).then(function (rows) {
-      var map = {}, first = null;
-      rows.forEach(function (r) { map[r.d] = r; if (!first && r.s === "open") first = r.d; });
-      avail[id] = { map: map, first: first, firstDay: rows.length ? rows[0].d : null, lastDay: rows.length ? rows[rows.length - 1].d : null };
-    }).catch(function () { if (id === state.move) failed = true; }).then(function () {
-      if (id !== state.move) return;
-      loading = false; afterAvail();
-    });
+    if (avail[id]) { loading = false; failed = false; afterAvail(); return; }
+    var first = DT.addDays(DT.today(), 1), last = DT.addDays(first, 179), map = {}, d = first;
+    while (d <= last) { map[d] = { d: d, s: "open", w: ["morning", "afternoon"], lo: false }; d = DT.addDays(d, 1); }
+    avail[id] = { map: map, first: first, firstDay: first, lastDay: last };
+    loading = false; failed = false; afterAvail();
   }
   function afterAvail() {
     var a = A();
@@ -993,13 +990,13 @@ JS = r'''
     if (loading) { box.innerHTML = '<p class="cal-msg">' + esc(t.calLoad) + "</p>"; return; }
     if (failed || !a || !a.firstDay || !state.month) { box.innerHTML = '<p class="cal-msg err">' + esc(t.calFail) + "</p>"; return; }
     var ym = state.month, y = +ym.slice(0, 4), mo = +ym.slice(5, 7);
-    var lead = SB.dow(ym + "-01"), days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+    var lead = DT.dow(ym + "-01"), days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
     var minM = a.firstDay.slice(0, 7), maxM = a.lastDay.slice(0, 7), i, d;
-    var h = '<div class="cal-head"><b>' + esc(up(SB.fmt(ym + "-01", state.lang, { month: "long", year: "numeric" }))) + '</b><div class="cal-nav">' +
+    var h = '<div class="cal-head"><b>' + esc(up(DT.fmt(ym + "-01", state.lang, { month: "long", year: "numeric" }))) + '</b><div class="cal-nav">' +
       '<button type="button" data-nav="-1" aria-label="' + esc(t.calPrev) + '"' + (ym <= minM ? " disabled" : "") + ">" + ARR_L + "</button>" +
       '<button type="button" data-nav="1" aria-label="' + esc(t.calNext) + '"' + (ym >= maxM ? " disabled" : "") + ">" + ARR_R + "</button></div></div>" +
       '<div class="cal-grid">';
-    for (i = 0; i < 7; i++) h += '<span class="cal-wd" aria-hidden="true">' + esc(SB.fmt("2026-11-0" + (1 + i), state.lang, { weekday: "short" }).replace(".", "").slice(0, 3)) + "</span>";
+    for (i = 0; i < 7; i++) h += '<span class="cal-wd" aria-hidden="true">' + esc(DT.fmt("2026-11-0" + (1 + i), state.lang, { weekday: "short" }).replace(".", "").slice(0, 3)) + "</span>";
     for (i = 0; i < lead; i++) h += '<span class="day blank"></span>';
     for (d = 1; d <= days; d++) {
       var ds = ym + "-" + pad2(d), r = a.map[ds], cls = "day", dis = true, word = t.aClosed;
@@ -1009,7 +1006,7 @@ JS = r'''
       else { dis = false; word = r.lo ? t.aLast : t.aOpen; if (r.lo) cls += " last"; }
       if (ds === state.date) cls += " sel";
       h += '<button type="button" class="' + cls + '" data-d="' + ds + '"' + (dis ? " disabled" : "") + (ds === state.date ? ' aria-pressed="true"' : "") +
-        ' aria-label="' + esc(SB.longDate(ds, state.lang) + ", " + word) + '">' + d + "</button>";
+        ' aria-label="' + esc(DT.longDate(ds, state.lang) + ", " + word) + '">' + d + "</button>";
     }
     box.innerHTML = h + "</div>";
     if (focusAfter) {
@@ -1035,7 +1032,7 @@ JS = r'''
   }
   function renderSum() {
     var t = T[state.lang], d = $("#sumDate"), ar = $("#sumArr");
-    if (state.date) { d.textContent = SB.fmt(state.date, state.lang, { weekday: "short", month: "short", day: "numeric", year: "numeric" }); d.className = "set"; }
+    if (state.date) { d.textContent = DT.fmt(state.date, state.lang, { weekday: "short", month: "short", day: "numeric", year: "numeric" }); d.className = "set"; }
     else { d.textContent = t.sumPick; d.className = ""; }
     var ok = state.date && (!isHalf(state.move) || state.win);
     if (ok) { ar.textContent = winLabel(isHalf(state.move) ? state.win : "morning"); ar.className = "set"; }
@@ -1074,9 +1071,27 @@ JS = r'''
     renderWin(); renderSum(); updateSteps(); showErr("");
   });
 
+  /* the whole request becomes one WhatsApp message for the Shammah team */
+  function buildRequest() {
+    var t = T[state.lang], f = form.elements, m = cur(), inv = invPayload(), pt = state.lang === "pt";
+    var arr = winLabel(isHalf(state.move) ? state.win : "morning");
+    var L = ["*" + t.rqHead + "*", "",
+      t.rqMove + ": " + m.title,
+      t.rqDate + ": " + DT.fmt(state.date, state.lang, { weekday: "short", month: "short", day: "numeric", year: "numeric" }),
+      t.rqArrive + ": " + (isHalf(state.move) ? (state.win === "afternoon" ? T[state.lang].winA : T[state.lang].winM) + " (" + arr + ")" : arr), "",
+      t.rqName + ": " + f.name.value.trim(), t.rqPhone + ": " + f.phone.value.trim()];
+    if (f.email.value.trim()) L.push(t.rqEmail + ": " + f.email.value.trim());
+    L.push("");
+    if (f.from.value.trim()) L.push(t.rqFrom + ": " + f.from.value.trim());
+    if (f.to.value.trim()) L.push(t.rqTo + ": " + f.to.value.trim());
+    if (f.details.value.trim()) L.push(t.rqSize + ": " + f.details.value.trim());
+    if (inv.length) L.push(t.rqItems + ": " + inv.map(function (it) { return it.qty + "x " + (pt ? it.item_pt : it.item); }).join("; "));
+    if (f.notes.value.trim()) L.push(t.rqNotes + ": " + f.notes.value.trim());
+    L.push("", t.rqLang + ": " + t.rqLangV);
+    return L.join("\n");
+  }
   form.addEventListener("submit", function (ev) {
     ev.preventDefault();
-    if (busy) return;
     var t = T[state.lang], f = form.elements, err = "", focusEl = null;
     if (f.website.value) return;
     if (!state.date) { err = t.vDate; focusEl = $("#cal .day:not(:disabled)"); }
@@ -1085,54 +1100,22 @@ JS = r'''
     else if (f.phone.value.replace(/\D/g, "").length < 10) { err = t.vPhone; focusEl = f.phone; }
     if (err) { showErr(err); if (focusEl) focusEl.focus(); return; }
     showErr("");
-    busy = true;
-    var btn = $("#bookBtn"), txt = $("#bookTxt");
-    btn.disabled = true; txt.textContent = t.sending;
-    var sent = { type: state.move, date: state.date, win: state.win || "morning" };
-    var inv = invPayload();
-    var args = {
-      p_type: sent.type, p_date: sent.date, p_win: sent.win,
-      p_name: f.name.value.trim(), p_phone: f.phone.value.trim(), p_email: f.email.value.trim(),
-      p_from: f.from.value.trim(), p_to: f.to.value.trim(), p_size: f.details.value.trim(), p_notes: f.notes.value.trim(),
-      p_lang: state.lang, p_inventory: inv
-    };
-    SB.rpc("book_move", args).catch(function (e) {
-      // Older database without the inventory parameter: resend with the list folded into the notes.
-      if (!(e && (e.code === "PGRST202" || e.status === 404 || /p_inventory|Could not find the function/i.test(e.message || "")))) throw e;
-      var legacy = Object.assign({}, args); delete legacy.p_inventory;
-      if (inv.length) {
-        var list = inv.map(function (it) { return it.qty + "x " + (state.lang === "pt" ? it.item_pt : it.item); }).join("; ");
-        legacy.p_notes = ((legacy.p_notes ? legacy.p_notes + "\n" : "") + (state.lang === "pt" ? "Itens: " : "Items: ") + list).slice(0, 1000);
-      }
-      return SB.rpc("book_move", legacy);
-    }).then(function (r) {
-      booked = { token: r.token, code: r.code, status: r.status, type: sent.type, date: sent.date, win: sent.win };
-      delete avail[sent.type];
-      showDone();
-    }).catch(function (e) {
-      showErr(SB.errText(e, state.lang));
-      if (/DATE_TAKEN|DATE_INVALID|WINDOW_INVALID/.test(e.message || "")) {
-        state.date = null; state.win = null; delete avail[state.move];
-        renderWin(); renderSum(); updateSteps(); loadAvail(true);
-      }
-    }).then(function () {
-      busy = false; btn.disabled = false; txt.textContent = T[state.lang].bookBtn;
-    });
+    booked = { type: state.move, date: state.date, win: state.win || "morning", url: wa(buildRequest()) };
+    try { window.open(booked.url, "_blank"); } catch (e) {}
+    showDone();
   });
   form.addEventListener("input", function () { updateQuote(); updateSteps(); });
 
   function renderDone() {
     if (!booked) return;
-    var t = T[state.lang], m = mvOf(booked.type), dl = SB.longDate(booked.date, state.lang), pend = booked.status !== "confirmed";
+    var t = T[state.lang], m = mvOf(booked.type), dl = DT.longDate(booked.date, state.lang);
     var arr = winLabel(isHalf(booked.type) ? booked.win : "morning");
-    var link = "reserva.html?t=" + encodeURIComponent(booked.token) + "&lang=" + state.lang;
-    var msg = tpl(t.waBook, { t: m.title, d: SB.fmt(booked.date, state.lang, { month: "short", day: "numeric", year: "numeric" }), c: booked.code });
-    function row(k, v, c) { return "<div><dt>" + esc(k) + "</dt><dd" + (c ? ' class="' + c + '"' : "") + ">" + esc(v) + "</dd></div>"; }
-    doneEl.innerHTML = '<span class="tick">' + TICK + '</span><h3 id="doneH" tabindex="-1">' + esc(pend ? t.okPending : t.okConfirmed) + "</h3><p>" +
-      esc(tpl(pend ? t.okSubPending : t.okSubConfirmed, { d: dl })) + "</p><dl>" +
-      row(t.okType, m.title) + row(t.okDate, dl) + row(t.okArrive, arr) + row(t.okCode, booked.code, "code") + "</dl>" +
-      '<div class="acts"><a class="btn btn-ink" href="' + esc(link) + '"><span>' + esc(t.okManage) + '</span><span class="dot">' + ARR + "</span></a>" +
-      '<a class="btn btn-line" href="' + esc(wa(msg)) + '" target="_blank" rel="noopener">' + esc(t.okWa) + ICON_WA + "</a>" +
+    var url = wa(buildRequest());
+    function row(k, v) { return "<div><dt>" + esc(k) + "</dt><dd>" + esc(v) + "</dd></div>"; }
+    doneEl.innerHTML = '<span class="tick">' + TICK + '</span><h3 id="doneH" tabindex="-1">' + esc(t.okPending) + "</h3><p>" +
+      esc(tpl(t.okSubPending, { d: dl })) + "</p><dl>" +
+      row(t.okType, m.title) + row(t.okDate, dl) + row(t.okArrive, arr) + "</dl>" +
+      '<div class="acts"><a class="btn btn-ink" href="' + esc(url) + '" target="_blank" rel="noopener"><span>' + esc(t.okWa) + '</span><span class="dot">' + ICON_WA + "</span></a>" +
       '<button type="button" class="btn btn-line" id="again">' + esc(t.okAgain) + "</button></div>";
   }
   function showDone() {
@@ -1143,33 +1126,12 @@ JS = r'''
   }
   doneEl.addEventListener("click", function (ev) {
     if (!ev.target.closest("#again")) return;
-    booked = null; form.reset(); state.date = null; state.win = null; state.month = null;
+    booked = null; form.reset(); state.date = null; state.win = null; state.month = null; state.inv = {};
     doneEl.hidden = true; doneEl.innerHTML = ""; form.hidden = false;
-    renderMove(false); renderWin(); renderSum(); updateSteps(); showErr("");
-    loadAvail(true);
+    renderMove(false); renderWin(); renderSum(); updateSteps(); showErr(""); renderInv();
+    loadAvail();
     $("#quote").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   });
-
-  /* settings the owner controls in the admin panel (WhatsApp number, arrival windows, which move types are offered) */
-  function loadConfig() {
-    SB.select("settings", "select=whatsapp,morning_label,afternoon_label&id=eq.1").then(function (r) {
-      if (!r || !r[0]) return;
-      if (r[0].whatsapp) cfg.wa = String(r[0].whatsapp).replace(/\D/g, "") || cfg.wa;
-      if (r[0].morning_label) cfg.morning = r[0].morning_label;
-      if (r[0].afternoon_label) cfg.afternoon = r[0].afternoon_label;
-      $$(".js-wa").forEach(function (a) { a.href = wa(T[state.lang].waGeneral); });
-      updateQuote(); renderWin(); renderSum(); renderDone();
-    }).catch(function () {});
-    SB.select("move_types", "select=id,span&active=eq.true").then(function (rows) {
-      if (!rows || !rows.length) return;
-      var on = {};
-      rows.forEach(function (r) { on[r.id] = 1; SPAN[r.id] = r.span; });
-      $$("#moves .chip").forEach(function (b) { b.hidden = !on[b.dataset.move]; });
-      $$("[data-pick]").forEach(function (a) { a.hidden = !on[a.dataset.pick]; });
-      if (!on[state.move]) { var f = rows[0].id; selectMove(f); }
-      else { renderWin(); renderSum(); }
-    }).catch(function () {});
-  }
 
   function invCount(id) { return state.inv[id] || 0; }
   function renderInv() {
@@ -1218,7 +1180,6 @@ JS = r'''
     $$(".js-wa").forEach(function (a) { a.href = wa(t.waGeneral); });
     $("#miniMoves").innerHTML = MOVES[state.lang].slice(0, 6).map(function (m) { return "<li>" + esc(m.label) + "</li>"; }).join("");
     menuBtn.setAttribute("aria-label", menuBtn.getAttribute("aria-expanded") === "true" ? t.menuClose : t.menu);
-    if (busy) $("#bookTxt").textContent = t.sending;
     renderMove(false); renderCal(); renderWin(); renderSum(); renderInv(); renderDone();
     hudText = "";
     queue();
@@ -1341,7 +1302,6 @@ JS = r'''
   } catch (e) {}
   setLang(initial);
   arrows();
-  loadConfig();
   loadAvail();
 })();
 '''
@@ -1448,12 +1408,7 @@ HEAD = f'''<!doctype html>
 if not SHOW_INVENTORY:
     body = re.sub(r"<!--INV-->.*?<!--/INV-->\n", "", body, flags=re.S)
 
-site = HEAD + body + '<script src="/assets/sb.js"></script>\n<script>' + js + "</script>\n</body>\n</html>\n"
+site = HEAD + body + "<script>" + js + "</script>\n</body>\n</html>\n"
 (HERE / "index.html").write_text(site, encoding="utf-8")
 
-preview = (
-    '<title>Shammah Moving v3</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
-    f"<style>\n{font_faces(True)}\n{CSS}\n</style>\n" + body + "<script>" + (HERE / "assets/sb.js").read_text(encoding="utf-8") + "</script>\n<script>" + js + "</script>\n"
-)
-(HERE / "preview.html").write_text(preview, encoding="utf-8")
-print("index.html", len(site), "bytes · preview.html", len(preview), "bytes")
+print("index.html", len(site), "bytes")

@@ -23,3 +23,7 @@ Todo o texto (inglês e português), os serviços, os tipos de mudança e o FAQ 
 ## Imagens
 
 Ficam em `assets/`. Para trocar uma foto, mantenha o mesmo nome de arquivo.
+
+## Pedido de mudança
+
+O formulário de agendamento não usa banco de dados nem painel. Quando o cliente envia, o site monta um resumo (tipo de mudança, data desejada, janela de chegada, contato, endereços, tamanho, itens e observações) e abre o WhatsApp do número `WA` com a mensagem pronta. A resposta e o orçamento acontecem no próprio WhatsApp.
